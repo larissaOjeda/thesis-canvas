@@ -200,4 +200,6 @@ poetry.toml
 # ruff
 .ruff_cache/
 
+
+.utils/
 # End of https://www.toptal.com/developers/gitignore/api/python,macos

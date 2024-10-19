@@ -4,8 +4,7 @@ from dap.api import DAPClient
 from dap.dap_types import Credentials, Format, SnapshotQuery
 from dotenv import load_dotenv
 from typing import List
-
-NAMESPACE = "canvas"
+from utils.constants import NAMESPACE, CSV_FOLDER_PATH, TABLE_SCHEMAS_PATH
 
 # Load environment variables from .env file
 def load_env_vars() -> tuple[str, str, str]:
@@ -70,13 +69,13 @@ async def get_tables(namespace: str, credentials:Credentials = None):
         return tables
 
 # Download all table schemas
-async def download_all_table_schemas(namespace: str, output_directory: str, credentials:Credentials = None):
+async def download_all_table_schemas(namespace: str, output_directory: str = TABLE_SCHEMAS_PATH, credentials:Credentials = None):
     """
     Downloads schemas for all tables within a namespace to the specified output directory.
 
     Args:
         namespace (str): The namespace containing the tables.
-        output_directory (str): The directory to save downloaded schemas.
+        output_directory (str): The directory to save downloaded schemas. The default one is in folder "table_schemas"
         credentials (Credentials, optional): Optional credentials object. Defaults to None.
     """
     if credentials is None: 
@@ -100,10 +99,13 @@ async def download_table_data(namespace: str, table: str, output_directory: str,
     """
     if credentials is None:
         credentials = create_credentials()
+    
+    file_name = f"{table}_data.csv"
+    output_file_dir = os.path.join(output_directory, file_name)
     async with DAPClient() as session:
         query = SnapshotQuery(format=Format.CSV, mode=None)
         await session.download_table_data(
-            namespace=namespace, table=table, query=query, output_directory=output_directory, decompress=True
+            namespace=namespace, table=table, query=query, output_directory=output_file_dir, decompress=True
         )
 
 # Download data for given tables 
@@ -131,8 +133,8 @@ async def download_tables_data(namespace: str, tables: list, output_directory: s
 # Example usage:
 if __name__ == "__main__":
     # Run independently
-    # asyncio.run(get_table_schema(namespace, "accounts"))
-    asyncio.run(download_all_table_schemas(namespace=NAMESPACE, output_directory=os.getcwd()))
-    # asyncio.run(get_tables(namespace))
-    #asyncio.run(download_table_data(namespace, "enrollments", os.getcwd()))
-    # asyncio.run(download_tables_data(namespace=namespace, tables=["courses"], output_directory=os.getcwd()))
+    asyncio.run(get_table_schema(namespace=NAMESPACE, table="accounts"))
+    asyncio.run(download_all_table_schemas(namespace=NAMESPACE))
+    asyncio.run(get_tables(namespace=NAMESPACE))
+    asyncio.run(download_table_data(namespace=NAMESPACE, table="submissions", output_directory=CSV_FOLDER_PATH))
+    asyncio.run(download_tables_data(namespace=NAMESPACE, tables=["courses"], output_directory=os.getcwd()))

@@ -5,6 +5,8 @@ from dap.dap_types import Credentials, Format, SnapshotQuery
 from dotenv import load_dotenv
 from typing import List
 
+NAMESPACE = "canvas"
+
 # Load environment variables from .env file
 def load_env_vars() -> tuple[str, str, str]:
     """
@@ -129,8 +131,8 @@ async def download_tables_data(namespace: str, tables: list, output_directory: s
 # Example usage:
 if __name__ == "__main__":
     # Run independently
-    # asyncio.run(get_table_schema("canvas", "accounts"))
-    # asyncio.run(download_all_table_schemas("canvas", os.getcwd()))
-    # asyncio.run(get_tables("canvas"))
-    asyncio.run(download_table_data("canvas", "enrollments", os.getcwd()))
-    # asyncio.run(download_tables_data(namespace="canvas", tables=["courses"], output_directory=os.getcwd()))
+    # asyncio.run(get_table_schema(namespace, "accounts"))
+    asyncio.run(download_all_table_schemas(namespace=NAMESPACE, output_directory=os.getcwd()))
+    # asyncio.run(get_tables(namespace))
+    #asyncio.run(download_table_data(namespace, "enrollments", os.getcwd()))
+    # asyncio.run(download_tables_data(namespace=namespace, tables=["courses"], output_directory=os.getcwd()))

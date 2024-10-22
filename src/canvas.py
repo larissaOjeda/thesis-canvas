@@ -133,8 +133,8 @@ async def download_tables_data(namespace: str, tables: list, output_directory: s
 # Example usage:
 if __name__ == "__main__":
     # Run independently
-    asyncio.run(get_table_schema(namespace=NAMESPACE, table="accounts"))
-    asyncio.run(download_all_table_schemas(namespace=NAMESPACE))
-    asyncio.run(get_tables(namespace=NAMESPACE))
-    asyncio.run(download_table_data(namespace=NAMESPACE, table="submissions", output_directory=CSV_FOLDER_PATH))
-    asyncio.run(download_tables_data(namespace=NAMESPACE, tables=["courses"], output_directory=os.getcwd()))
+    # asyncio.run(get_table_schema(namespace=NAMESPACE, table="accounts"))
+    # asyncio.run(download_all_table_schemas(namespace=NAMESPACE))
+    # asyncio.run(get_tables(namespace=NAMESPACE))
+    asyncio.run(download_table_data(namespace=NAMESPACE, table="scores", output_directory=CSV_FOLDER_PATH))
+    # asyncio.run(download_tables_data(namespace=NAMESPACE, tables=["courses"], output_directory=os.getcwd()))

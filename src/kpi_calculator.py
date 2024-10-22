@@ -65,7 +65,7 @@ def create_student_retention_rate(enrollments_df, year, semester):
     return retention_rate
 
 
-def calculate_completion_rate(assignments_df, submissions_df, year, semester):
+def calculate_tasks_completion_rate(assignments_df, submissions_df, year, semester):
     start_semester, end_semester = get_semester_dates(year, semester)
 
     assignments_df['created_at'] = pd.to_datetime(assignments_df['value.created_at'], utc=True)
@@ -95,3 +95,40 @@ def calculate_completion_rate(assignments_df, submissions_df, year, semester):
     completion_rate = (completed_tasks / total_assignments) * 100
 
     return completion_rate
+
+
+def calculate_average_score(scores_df, year, semester):
+    start_semester, end_semester = get_semester_dates(year, semester)
+
+    scores_df['value.updated_at'] = pd.to_datetime(scores_df['value.updated_at'])
+
+    filtered_scores = scores_df[
+        (scores_df['value.updated_at'] >= start_semester) & 
+        (scores_df['value.updated_at'] <= end_semester) & 
+        (scores_df['value.workflow_state'] == 'active')  # Consider only active scores
+    ]
+
+    if filtered_scores.empty:
+        return 0.0
+
+    average_score = filtered_scores['value.current_score'].mean()
+    return average_score
+
+
+def calculate_score_distribution(scores_df, year, semester):
+
+    scores_df['value.created_at'] = pd.to_datetime(scores_df['value.created_at'], errors='coerce')
+    scores_df['value.updated_at'] = pd.to_datetime(scores_df['value.updated_at'], errors='coerce')
+    scores_df = scores_df.dropna(subset=['value.created_at'])
+
+    start_date, end_date = get_semester_dates(year, semester)
+
+    filtered_scores = scores_df[
+        (scores_df['value.created_at'] <= end_date) &   
+        ((scores_df['value.updated_at'] >= start_date) |
+         (scores_df['value.updated_at'].isna()))  
+    ]
+
+    scores = filtered_scores['value.final_score'].dropna()
+
+    return scores

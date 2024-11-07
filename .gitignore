@@ -201,8 +201,8 @@ poetry.toml
 .ruff_cache/
 
 csv_files/
-html_files/
-table_schemas/
+html_files
+table_schemas
 
 
 # End of https://www.toptal.com/developers/gitignore/api/python,macossrc/csv_files/assignments.csv

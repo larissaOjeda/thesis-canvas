@@ -132,3 +132,39 @@ def calculate_score_distribution(scores_df, year, semester):
     scores = filtered_scores['value.final_score'].dropna()
 
     return scores
+
+def calculate_feedback_time_vs_assignment_count(submissions_df, year, semester):
+    # Convert dates to datetime
+    submissions_df['value.created_at'] = pd.to_datetime(submissions_df['value.created_at'], utc=True)
+    submissions_df['value.updated_at'] = pd.to_datetime(submissions_df['value.updated_at'], utc=True)
+
+    # Get semester start and end dates
+    start_date, end_date = get_semester_dates(year, semester)
+
+    # Filter submissions by semester
+    filtered_submissions = submissions_df[
+        (submissions_df['value.created_at'] >= start_date) & 
+        (submissions_df['value.created_at'] <= end_date)
+    ]
+
+    # Calculate feedback time in hours
+    filtered_submissions['feedback_time'] = (
+        filtered_submissions['value.updated_at'] - filtered_submissions['value.created_at']
+    ).dt.total_seconds() / 3600
+
+    # Remove rows with NaN feedback times
+    filtered_submissions = filtered_submissions.dropna(subset=['feedback_time'])
+
+    # Calculate average feedback time per course
+    avg_feedback_time_per_course = filtered_submissions.groupby('value.course_id')['feedback_time'].mean().reset_index()
+    avg_feedback_time_per_course.columns = ['value.course_id', 'average_feedback_time']
+
+    # Calculate the number of assignments per course
+    assignment_count_per_course = filtered_submissions.groupby('value.course_id').size().reset_index(name='assignment_count')
+
+    # Merge the two results to have both average feedback time and assignment count per course
+    feedback_time_vs_assignment_count = avg_feedback_time_per_course.merge(
+        assignment_count_per_course, on='value.course_id'
+    )
+
+    return feedback_time_vs_assignment_count

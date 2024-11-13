@@ -38,6 +38,61 @@ def create_ratio_of_course_availability_and_activity_for_semester(courses_df, ye
 
 
 
+def calculate_monthly_course_availability(courses_df, year, semester):
+    """
+    Calculates the monthly counts of active and inactive courses for a given semester.
+
+    Args:
+        courses_df (pd.DataFrame): DataFrame containing course information.
+        year (int): Year of the semester.
+        semester (str): Semester name ('spring', 'summer', or 'winter').
+
+    Returns:
+        dict: Dictionary with months as keys and two lists, 'active' and 'inactive', containing monthly counts.
+    """
+    start_semester, end_semester = get_semester_dates(year, semester)
+
+    # Convert course dates to UTC
+    courses_df['start_at'] = pd.to_datetime(courses_df['value.created_at'], utc=True)
+    courses_df['end_at'] = pd.to_datetime(courses_df['value.updated_at'], utc=True)
+
+    # Define months based on semester
+    if semester.lower() == 'spring':
+        months = ['January', 'February', 'March', 'April', 'May', 'June']
+    elif semester.lower() == 'summer':
+        months = ['June', 'July']
+    elif semester.lower() == 'winter':
+        months = ['August', 'September', 'October', 'November', 'December']
+
+    active_counts = []
+    inactive_counts = []
+
+    # Calculate active and inactive course counts for each month
+    for month in months:
+        month_start = pd.Timestamp(f"{year}-{month}-01", tz='UTC')
+        month_end = month_start + pd.offsets.MonthEnd(1)
+
+        # Active courses for the month
+        active_courses = courses_df[
+            (courses_df['value.workflow_state'] == 'available') &
+            (courses_df['start_at'] <= month_end) &
+            ((courses_df['end_at'] >= month_start) | courses_df['end_at'].isna())
+        ]
+
+        # Inactive courses for the month
+        inactive_courses = courses_df[
+            (courses_df['value.workflow_state'] != 'available') &
+            (courses_df['start_at'] <= month_end) &
+            (courses_df['end_at'] < month_start) &
+            courses_df['end_at'].notna()
+        ]
+
+        active_counts.append(active_courses.shape[0])
+        inactive_counts.append(inactive_courses.shape[0])
+
+    return {'month': months, 'active': active_counts, 'inactive': inactive_counts}
+
+
 def create_student_retention_rate(enrollments_df, year, semester):
     start_semester, end_semester = get_semester_dates(year, semester)
 
@@ -168,3 +223,85 @@ def calculate_feedback_time_vs_assignment_count(submissions_df, year, semester):
     )
 
     return feedback_time_vs_assignment_count
+
+
+def courses_with_high_failing_enrollments(
+    enrollments_df,
+    scores_df,
+    year,
+    semester,
+    failing_threshold=60,
+    fail_count_threshold=10  
+):
+    # Convert dates to datetime
+    enrollments_df['value.created_at'] = pd.to_datetime(enrollments_df['value.created_at'], utc=True)
+    scores_df['value.created_at'] = pd.to_datetime(scores_df['value.created_at'], utc=True)
+    
+
+    # Get semester dates
+    start_date, end_date = get_semester_dates(year, semester)
+    semester_start = pd.to_datetime(start_date)
+    semester_end = pd.to_datetime(end_date)
+    
+    # Filter enrollments during the semester
+    semester_enrollments = enrollments_df[
+        (enrollments_df['value.created_at'] >= semester_start) &
+        (enrollments_df['value.created_at'] <= semester_end) &
+        (enrollments_df['value.workflow_state'] == 'available')
+    ]
+    # Merge enrollments with scores
+    merged_df = semester_enrollments.merge(
+        scores_df[['value.enrollment_id', 'value.final_score']],
+        left_on='key.id',  # Enrollment ID in enrollments_df
+        right_on='value.enrollment_id',  # Enrollment ID in scores_df
+        how='left'
+    )
+
+    # Identify failing enrollments
+    failing_enrollments = merged_df[
+        (merged_df['value.final_score'] < failing_threshold) |
+        (merged_df['value.final_score'].isnull())  # Assuming null scores are failing
+    ]
+
+    # Count failing enrollments per course
+    failing_counts = failing_enrollments.groupby('value.enrollment_id').size().reset_index(name='failing_enrollments')
+    
+    # Identify courses exceeding the failing enrollment threshold
+    flagged_courses = failing_counts[
+        failing_counts['failing_enrollments'] >= fail_count_threshold
+    ]
+    
+    return flagged_courses
+
+
+
+def calculate_average_assignment_score(assignments_df, submissions_df):
+    """
+    Calculates the average assignment score per course.
+    
+    Handles NaN values by excluding them from the calculation.
+    """
+    # Ensure correct data types
+    assignments_df['key.id'] = assignments_df['key.id'].astype(int)
+    assignments_df['value.context_id'] = assignments_df['value.context_id'].astype(int)
+    submissions_df['value.assignment_id'] = submissions_df['value.assignment_id'].astype(int)
+    submissions_df['value.score'] = pd.to_numeric(submissions_df['value.score'], errors='coerce')
+    
+    # Merge DataFrames on assignment IDs
+    merged_df = pd.merge(
+        submissions_df,
+        assignments_df[['key.id', 'value.context_id']],
+        left_on='value.assignment_id',
+        right_on='key.id',
+        how='inner'
+    )
+    
+    # Drop rows with NaN scores
+    merged_df = merged_df.dropna(subset=['value.score'])
+    
+    # Calculate average score per course
+    average_scores = merged_df.groupby('value.context_id')['value.score'].mean().reset_index()
+    average_scores['value.context_id'] = average_scores['value.context_id'].astype(str)
+    average_scores.rename(columns={'value.context_id': 'course_id'}, inplace=True)
+    
+    return average_scores

@@ -136,5 +136,5 @@ if __name__ == "__main__":
     # asyncio.run(get_table_schema(namespace=NAMESPACE, table="accounts"))
     # asyncio.run(download_all_table_schemas(namespace=NAMESPACE))
     # asyncio.run(get_tables(namespace=NAMESPACE))
-    asyncio.run(download_table_data(namespace=NAMESPACE, table="roles", output_directory=CSV_FOLDER_PATH))
+    asyncio.run(download_table_data(namespace=NAMESPACE, table="modules", output_directory=CSV_FOLDER_PATH))
     # asyncio.run(download_tables_data(namespace=NAMESPACE, tables=["courses"], output_directory=os.getcwd()))

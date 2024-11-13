@@ -1,4 +1,6 @@
 import pandas as pd 
+from datetime import datetime
+
 
 def get_semester_dates(year, semester):
     """
@@ -17,3 +19,19 @@ def get_semester_dates(year, semester):
     else:
         raise ValueError("Invalid semester. Choose between 'Spring', 'Summer', or 'Winter'.")
 
+
+def get_semester_months(year, semester):
+    if semester == "Spring":
+        start_date = datetime(year, 1, 1)
+        end_date = datetime(year, 6, 30)
+    elif semester == "Summer":
+        start_date = datetime(year, 6, 1)
+        end_date = datetime(year, 8, 31)
+    elif semester == "Fall":
+        start_date = datetime(year, 9, 1)
+        end_date = datetime(year, 12, 31)
+    else:
+        raise ValueError("Invalid semester")
+
+    months = pd.date_range(start_date, end_date, freq='MS').strftime('%b').tolist()
+    return months

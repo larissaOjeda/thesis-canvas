@@ -4,7 +4,7 @@ from dap.api import DAPClient
 from dap.dap_types import Credentials, Format, SnapshotQuery
 from dotenv import load_dotenv
 from typing import List
-from utils.constants import NAMESPACE, CSV_FOLDER_PATH, TABLE_SCHEMAS_PATH
+from utils.constants import NAMESPACE, TABLE_SCHEMAS_PATH, TABLES_FOR_KPIS
 
 # Load environment variables from .env file
 def load_env_vars() -> tuple[str, str, str]:
@@ -103,7 +103,7 @@ async def download_table_data(namespace: str, table: str, output_directory: str,
     file_name = f"{table}_data.csv"
     output_file_dir = os.path.join(output_directory, file_name)
     async with DAPClient() as session:
-        query = SnapshotQuery(format=Format.CSV, mode=None)
+        query = SnapshotQuery(format=Format.JSONL, mode=None)
         await session.download_table_data(
             namespace=namespace, table=table, query=query, output_directory=output_file_dir, decompress=True
         )
@@ -124,7 +124,7 @@ async def download_tables_data(namespace: str, tables: list, output_directory: s
     if tables is None:
         tables = get_tables(namespace)
     async with DAPClient() as session:
-        query = SnapshotQuery(format=Format.CSV, mode=None)
+        query = SnapshotQuery(format=Format.JSONL, mode=None)
         for table in tables:
             await session.download_table_data(
                 namespace=namespace, table=table, query=query, output_directory=output_directory, decompress=True
@@ -136,5 +136,5 @@ if __name__ == "__main__":
     # asyncio.run(get_table_schema(namespace=NAMESPACE, table="accounts"))
     # asyncio.run(download_all_table_schemas(namespace=NAMESPACE))
     # asyncio.run(get_tables(namespace=NAMESPACE))
-    asyncio.run(download_table_data(namespace=NAMESPACE, table="modules", output_directory=CSV_FOLDER_PATH))
-    # asyncio.run(download_tables_data(namespace=NAMESPACE, tables=["courses"], output_directory=os.getcwd()))
+    # asyncio.run(download_table_data(namespace=NAMESPACE, table="access_tokens", output_directory=CSV_FOLDER_PATH))
+    asyncio.run(download_tables_data(namespace=NAMESPACE, tables=TABLES_FOR_KPIS, output_directory=os.getcwd()))

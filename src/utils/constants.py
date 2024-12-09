@@ -21,4 +21,5 @@ COURSE_SECTIONS="/Users/larissatrasvina/thesis-canvas/src/csv_files/course_secti
 
 
 TABLE_NAMES = []
-TABLES_FOR_KPIS = ["access_tokens", "account_users", "accounts"]
+TABLES_FOR_KPIS_IN_CANVAS = ["context_module_progressions", "courses", "enrollments", "submissions", "submission_comments", "learning_outcome_results", "learning_outcomes"]
+TABLES_FOR_KPIS_IN_CANVAS_LOGS = ["web_logs"]

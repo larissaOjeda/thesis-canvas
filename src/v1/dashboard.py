@@ -10,7 +10,7 @@ import numpy as np
 
 from plots import create_average_score_plot
 
-from kpi import (
+from v1.kpi_calculator import (
     create_ratio_of_course_availability_and_activity_for_semester,
     create_student_retention_rate,
     calculate_tasks_completion_rate,

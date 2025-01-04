@@ -2,13 +2,12 @@ from bokeh.plotting import figure
 from bokeh.models import (
     ColumnDataSource, 
     HoverTool, 
-    Div,
     BoxAnnotation,
     Span,
     Label,
 )
-from bokeh.transform import factor_cmap
-from bokeh.layouts import column
+from bokeh.transform import factor_cmap, dodge
+from bokeh.palettes import Spectral6
 
 import pandas as pd
 
@@ -330,7 +329,7 @@ def create_course_completion_rate(source, N=10, avg_count=10):
     selected_df["course_id_str"] = selected_df["course_id"].astype(str)
 
     p = figure(
-        width=800,
+        width=700,
         height=400,
         title="Course Completion Rates Analysis",
         x_axis_label="Course ID",
@@ -426,3 +425,71 @@ def create_course_completion_rate(source, N=10, avg_count=10):
     p.xaxis.major_label_orientation = 0.8
 
     return p
+
+from bokeh.plotting import figure
+from bokeh.models import ColumnDataSource, HoverTool
+from bokeh.palettes import Spectral6
+from bokeh.transform import dodge
+
+def plot_learning_objective_completion(source):
+    # Convert ColumnDataSource to DataFrame
+    df = source.to_df()
+    df['course_id'] = df['course_id'].astype(str)
+
+    # Recreate ColumnDataSource with updated DataFrame
+    source = ColumnDataSource(df)
+    course_ids = df['course_id'].tolist()
+
+    # Create figure with updated size
+    p = figure(
+        x_range=course_ids,
+        width=600,  # Increased width
+        height=400,  # Reduced height
+        title="Learning Objective Completion by Course",
+        toolbar_location=None,
+        tools=""
+    )
+
+    # Plot avg_achievement_percentage
+    p.vbar(
+        x=dodge('course_id', -0.17, range=p.x_range), 
+        top='avg_achievement_percentage', 
+        width=0.30, 
+        source=source,
+        legend_label="Average Achievement Percentage", 
+        color=Spectral6[0]
+    )
+
+    # Plot mastery_percentage
+    p.vbar(
+        x=dodge('course_id', 0.17, range=p.x_range), 
+        top='mastery_percentage', 
+        width=0.30, 
+        source=source,
+        legend_label="Mastery Percentage", 
+        color=Spectral6[1],
+        alpha=0.8
+    )
+
+    # Customize appearance
+    p.x_range.range_padding = 0.1
+    p.y_range.start = 0
+    p.xgrid.grid_line_color = None
+    p.yaxis.axis_label = 'Percentage'
+    p.xaxis.axis_label = 'Course ID'
+    p.xaxis.major_label_orientation = 1.2
+    p.legend.location = "top_left"
+    p.legend.orientation = "horizontal"
+
+    # Add hover tool
+    hover = HoverTool()
+    hover.tooltips = [
+        ("Course ID", "@course_id"),
+        ("Average Achievement Percentage", "@avg_achievement_percentage%"),
+        ("Mastery Percentage", "@mastery_percentage%")
+    ]
+    p.add_tools(hover)
+
+    return p
+
+

@@ -142,55 +142,41 @@ JOIN course_requirements cr ON cr.course_id = sp.course_id
 GROUP BY sp.course_id;
     """
 
-
-def get_learning_objective_completion_query(semester_start_date: str, semester_end_date: str) -> str:
+def get_learning_objective_completion_query(semester_start_date, semester_end_date): 
     return f"""
-    WITH outcome_results AS (
-        SELECT
-            lor.learning_outcome_id,
-            lor.context_id AS course_id,
-            lor.user_id,
-            lor.score,
-            lor.possible,
-            lor.mastery
-        FROM canvas.learning_outcome_results lor
-        WHERE lor.workflow_state = 'active'
-          AND lor.created_at >= '{semester_start_date}'::timestamp
-          AND lor.created_at <= '{semester_end_date}'::timestamp
-    ),
-    course_aggregates AS (
-        SELECT
-            course_id,
-            COUNT(DISTINCT user_id) AS total_students,
-            COUNT(DISTINCT CASE WHEN mastery THEN user_id END) AS mastered_count,
-            ROUND(
-                AVG(
-                    CASE WHEN possible > 0 THEN (score / possible * 100)
-                         ELSE NULL
-                    END
-                )::numeric,
-                2
-            ) AS avg_achievement_percentage,
-            ROUND(
-                (
-                    COUNT(DISTINCT CASE WHEN mastery THEN user_id END) * 100.0 /
-                    NULLIF(COUNT(DISTINCT user_id), 0)
-                )::numeric,
-                2
-            ) AS mastery_percentage
-        FROM outcome_results
-        GROUP BY course_id
-    )
+WITH outcome_results AS (
+    SELECT
+        lor.learning_outcome_id,
+        lor.context_id AS course_id,
+        lor.score,
+        lor.possible,
+        lor.mastery
+    FROM canvas.learning_outcome_results lor
+    WHERE lor.context_type = 'Course'
+    AND lor.created_at <= '{semester_end_date}'::timestamp
+    and lor.created_at >= '{semester_start_date}'::timestamp
+),
+course_aggregates AS (
     SELECT
         course_id,
-        total_students,
-        mastered_count,
-        avg_achievement_percentage,
-        mastery_percentage
-    FROM course_aggregates
-    ORDER BY mastery_percentage DESC;
-    """
-
+        ROUND(
+            AVG(CASE WHEN possible > 0 THEN (score / possible * 100) ELSE NULL END)::numeric,
+            2
+        ) AS avg_achievement_percentage,
+        ROUND(
+            (COUNT(CASE WHEN mastery THEN 1 END) * 100.0 / COUNT(*))::numeric,
+            2
+        ) AS mastery_percentage
+    FROM outcome_results
+    GROUP BY course_id
+)
+SELECT
+    course_id,
+    avg_achievement_percentage,
+    mastery_percentage
+FROM course_aggregates
+ORDER BY mastery_percentage DESC;
+"""
 
 def get_course_retention_query(semester_start_date, semester_end_date):
     """

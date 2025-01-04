@@ -69,7 +69,7 @@ def execute_student_retention_rate_query(start_date: str, end_date: str):
 
 if __name__ == "__main__":
     start_date = '2024-01-01'
-    end_date = '2024-12-01'
+    end_date = '2024-06-01'
     
     # results = execute_module_completion_query(start_date, end_date)
     # for course_id, progress in results:
@@ -87,7 +87,7 @@ if __name__ == "__main__":
 
     # TODO: Revise the query cause its prompting only a few little results  
     results_5 = execute_learning_objective_completion_query(start_date, end_date)
-    print(len(results_5))  
+    print(results_5)
 
     # TODO: Revise the query cause its prompting 100 or 0 as rate for all values 
     # results_6 = execute_student_retention_rate_query(start_date, end_date)

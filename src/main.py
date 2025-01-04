@@ -29,8 +29,11 @@ def update_data(year, semester, engine):
 
     completion_rate_query = queries.get_course_completion_rate_query(semester_start_date, semester_end_date)
     completion_rate_df = pd.read_sql(completion_rate_query, engine)
+
+    learning_objective_completion_query = queries.get_learning_objective_completion_query(semester_start_date, semester_end_date)
+    learning_objective_df = pd.read_sql(learning_objective_completion_query, engine)
     
-    return ColumnDataSource(course_reqs_progress_df), ColumnDataSource(feedback_df), ColumnDataSource(completion_rate_df)
+    return ColumnDataSource(course_reqs_progress_df), ColumnDataSource(feedback_df), ColumnDataSource(completion_rate_df), ColumnDataSource(learning_objective_df)
 
 
 def save_dashboard(year, semester, filename='course_completion_dashboard.html'):
@@ -40,7 +43,7 @@ def save_dashboard(year, semester, filename='course_completion_dashboard.html'):
     connection_string = "postgresql://larissatrasvina:@localhost:5432/canvas_itam_v1"
     engine = create_engine(connection_string)
     
-    completion_source, feedback_source, completion_rate_source = update_data(year, semester, engine)
+    completion_source, feedback_source, completion_rate_source, learning_objective_source = update_data(year, semester, engine)
     
     title = f"Course Completion and Feedback Dashboard - {semester} {year}"
     
@@ -56,7 +59,8 @@ def save_dashboard(year, semester, filename='course_completion_dashboard.html'):
     #     helpers.create_feedback_summary(feedback_source),
     # ),
     row(
-        plots.create_course_completion_rate(completion_rate_source)
+        plots.create_course_completion_rate(completion_rate_source), 
+        plots.plot_learning_objective_completion(learning_objective_source),
     )
     )
     

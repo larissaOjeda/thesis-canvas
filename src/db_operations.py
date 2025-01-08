@@ -57,6 +57,7 @@ async def test_web_logs_sync():
             print(f"Error with web_logs synchronization: {e}")
 
 
+
 async def main():
     if not isinstance(TABLES_FOR_KPIS_IN_CANVAS, list) or not TABLES_FOR_KPIS_IN_CANVAS:
         raise ValueError("TABLES_FOR_KPIS must be a non-empty list.")
@@ -64,10 +65,14 @@ async def main():
     for table in TABLES_FOR_KPIS_IN_CANVAS:
         await synchronize_data_in_db(table)
 
+
+
 if __name__ == "__main__":
     # if not isinstance(TABLES_FOR_KPIS_IN_CANVAS, list) or not TABLES_FOR_KPIS_IN_CANVAS:
     #     raise ValueError("TABLES_FOR_KPIS must be a non-empty list.")
 
+    # asyncio.run(test_web_logs_sync())
+    
     # asyncio.run(run_tasks_sequentially(tables=TABLES_FOR_KPIS_IN_CANVAS))
     # asyncio.run(run_tasks_sequentially(tables=TABLES_FOR_KPIS_IN_CANVAS_LOGS, namespace="canvas_logs"))
 

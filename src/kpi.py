@@ -56,9 +56,9 @@ def execute_learning_objective_completion_query(start_date: str, end_date: str):
 
 
 # KPI 6
-def execute_student_retention_rate_query(start_date: str, end_date: str):
+def execute_student_retention_rate_query(start_date: str, end_date: str, term_name: str):
     results = []
-    STUDENT_RETENTION_RATE = get_course_retention_query(start_date, end_date)
+    STUDENT_RETENTION_RATE = get_course_retention_query(start_date, end_date, term_name)
 
     with SessionManager() as session:
         query = session.execute(text(STUDENT_RETENTION_RATE))
@@ -85,13 +85,13 @@ if __name__ == "__main__":
     # for course_id, total_enrolled, completed_count, completion_rate in results_4: 
     #     print(f"Course {course_id}, total enrolled {total_enrolled}, completed count = {completed_count}, rate is {completion_rate}")
 
-    # TODO: Revise the query cause its prompting only a few little results  
-    results_5 = execute_learning_objective_completion_query(start_date, end_date)
-    print(results_5)
+    # TODO: THE QUERY IS DOING SO CAUSE THE DATA IS NOT WELL STRUCTURED FROM THE PROFESSORS SIDE  
+    #  the query cause its prompting only a few little results  
+    # results_5 = execute_learning_objective_completion_query(start_date, end_date)
+    # print(results_5)
 
-    # TODO: Revise the query cause its prompting 100 or 0 as rate for all values 
-    # results_6 = execute_student_retention_rate_query(start_date, end_date)
-    # for course_id, course_name, intial_en, final_en, rate in results_6:
+    # results_6 = execute_student_retention_rate_query(start_date, end_date, "PRIMAVERA 2024")
+    # for course_id, course_name, intial_en, final_en, _, rate in results_6:
     #     print(course_id, rate)
     
 

@@ -9,13 +9,9 @@ def get_progress_in_course_requirements_query(semester_start_date, semester_end_
         WHERE e.type = 'StudentEnrollment'
           AND e.workflow_state NOT IN ('deleted', 'rejected', 'inactive')
           AND (
-              -- Either the enrollment has specific dates that overlap with the semester
-              (
-                  (e.start_at IS NULL OR e.start_at <= '{semester_end_date}'::timestamp)
-                  AND (e.end_at IS NULL OR e.end_at   >= '{semester_start_date}'::timestamp)
-                  AND (e.end_at IS NULL OR e.start_at IS NULL OR e.end_at >= e.start_at)
-              )
-
+              (e.start_at IS NULL OR e.start_at <= '{semester_end_date}'::timestamp)
+              AND (e.end_at IS NULL OR e.end_at   >= '{semester_start_date}'::timestamp)
+              AND (e.end_at IS NULL OR e.start_at IS NULL OR e.end_at >= e.start_at)
           )
     ),
     module_progress AS (
@@ -33,20 +29,22 @@ def get_progress_in_course_requirements_query(semester_start_date, semester_end_
     ),
     course_completion AS (
         SELECT 
-            course_id,
+            c.id as course_id,
+            c.name as course_name,
             ROUND(
-                COUNT(CASE WHEN workflow_state = 'completed' THEN 1 END) * 100.0 
+                COUNT(CASE WHEN mp.workflow_state = 'completed' THEN 1 END) * 100.0 
                 / NULLIF(COUNT(*), 0),
                 2
             ) AS completion_percentage
-        FROM module_progress
-        GROUP BY course_id
+        FROM canvas.courses c
+        LEFT JOIN module_progress mp ON mp.course_id = c.id
+        GROUP BY c.id, c.name
     )
     SELECT *
     FROM course_completion
-    WHERE completion_percentage > 0.0;
+    WHERE completion_percentage > 0.0
+    ORDER BY completion_percentage ASC;
     """
-
 
 def get_feedback_time_by_course_query(semester_start_date: str, semester_end_date: str) -> str:
     return f"""
@@ -76,11 +74,13 @@ def get_feedback_time_by_course_query(semester_start_date: str, semester_end_dat
       FROM submission_feedback sf
     )
     SELECT 
-      course_id,
-      ROUND(AVG(feedback_time_in_days), 2) AS avg_feedback_days
-    FROM feedback_analysis
-    WHERE feedback_time_in_days IS NOT NULL
-    GROUP BY course_id
+      fa.course_id,
+      c.name AS course_name,
+      ROUND(AVG(fa.feedback_time_in_days), 2) AS avg_feedback_days
+    FROM feedback_analysis fa
+    JOIN canvas.courses c ON fa.course_id = c.id
+    WHERE fa.feedback_time_in_days IS NOT NULL
+    GROUP BY fa.course_id, c.name
     ORDER BY avg_feedback_days ASC;
     """
 
@@ -143,8 +143,7 @@ GROUP BY sp.course_id;
     """
 
 def get_learning_objective_completion_query(semester_start_date, semester_end_date): 
-    return f"""
-WITH outcome_results AS (
+    return f"""WITH outcome_results AS (
     SELECT
         lor.learning_outcome_id,
         lor.context_id AS course_id,
@@ -171,70 +170,58 @@ course_aggregates AS (
     GROUP BY course_id
 )
 SELECT
-    course_id,
-    avg_achievement_percentage,
-    mastery_percentage
-FROM course_aggregates
-ORDER BY mastery_percentage DESC;
+    ca.course_id,
+    c.name AS course_name,
+    ca.avg_achievement_percentage,
+    ca.mastery_percentage
+FROM course_aggregates ca
+JOIN canvas.courses c ON ca.course_id = c.id
+ORDER BY ca.mastery_percentage DESC;
 """
 
-def get_course_retention_query(semester_start_date, semester_end_date):
-    """
-    Get SQL query for course retention rates within a semester period.
-    Both initial and final enrollment counts are taken from the same time frame.
-    
-    Args:
-        semester_start_date (str): Start date in format 'YYYY-MM-DD'
-        semester_end_date (str): End date in format 'YYYY-MM-DD'
-        
-    Returns:
-        str: SQL query with parameters replaced
-    """
-    return f"""
-    WITH enrollment_counts AS (
-      SELECT
-        e.course_id,
-        c.name as course_name,
-        COUNT(DISTINCT CASE
-          WHEN e.created_at BETWEEN '{semester_start_date}'::timestamp AND '{semester_end_date}'::timestamp
-          AND e.workflow_state = 'active'
-          THEN e.user_id
-        END) as initial_enrollment,
-        COUNT(DISTINCT CASE
-          WHEN e.created_at BETWEEN '{semester_start_date}'::timestamp AND '{semester_end_date}'::timestamp
-          AND e.workflow_state = 'active'
-          AND e.updated_at BETWEEN '{semester_start_date}'::timestamp AND '{semester_end_date}'::timestamp
-          THEN e.user_id
-        END) as final_enrollment
-      FROM
-        canvas.enrollments e
-        JOIN canvas.courses c ON e.course_id = c.id
-      WHERE
-        e.type = 'StudentEnrollment'
-        AND c.workflow_state = 'available'
-      GROUP BY
-        e.course_id,
-        c.name
-    )
-    SELECT
-      course_id,
-      course_name,
-      initial_enrollment,
-      final_enrollment,
-      CASE
-        WHEN initial_enrollment > 0 THEN
-          ROUND(
-            CAST(final_enrollment AS numeric) /
-            CAST(initial_enrollment AS numeric) * 100,
-            2
-          )
-        ELSE 0
-      END as retention_rate
-    FROM
-      enrollment_counts
-    WHERE
-      initial_enrollment > 0
-    ORDER BY
-      retention_rate DESC;
-    """
 
+def get_course_retention_query(semester_start_date, semester_end_date, enrollment_term_name):
+    return f"""
+WITH EnrollmentCounts AS (
+    SELECT 
+        c.id AS course_id,
+        c.name AS course_name,
+        et.name AS term_name,
+        -- Total enrollments
+        COUNT(DISTINCT CASE 
+            WHEN e.type = 'StudentEnrollment' 
+            THEN e.user_id 
+        END) AS total_enrollments,  
+        -- Active enrollments (enrolled and active during semester)
+        COUNT(DISTINCT CASE 
+            WHEN e.type = 'StudentEnrollment'
+                 AND e.created_at >= '{semester_start_date}'::timestamp  -- start semester
+                 AND e.last_activity_at BETWEEN
+                     '{semester_end_date}'::timestamp - INTERVAL '3 days'
+                     AND '{semester_end_date}'::timestamp + INTERVAL '3 days'
+            THEN e.user_id
+        END) AS active_enrollments
+    FROM canvas.courses c
+    JOIN canvas.enrollments e 
+      ON c.id = e.course_id
+    JOIN canvas.enrollment_terms et 
+      ON c.enrollment_term_id = et.id
+    WHERE e.type = 'StudentEnrollment'
+    AND et.name ILIKE '%%{enrollment_term_name}%%'
+    GROUP BY c.id, c.name, et.name
+)
+SELECT 
+    course_id,
+    course_name,
+    term_name,
+    total_enrollments,
+    active_enrollments,
+    ROUND(
+        (active_enrollments::DECIMAL / NULLIF(total_enrollments, 0) * 100)::DECIMAL, 
+        2
+    ) AS retention_rate_percentage
+FROM EnrollmentCounts
+WHERE total_enrollments > 0
+AND active_enrollments > 0
+ORDER BY retention_rate_percentage DESC;
+"""

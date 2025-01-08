@@ -1,40 +1,61 @@
-from datetime import datetime
+from datetime import datetime, date
 import numpy as np
 import pandas as pd 
 
-from bokeh.models import ColumnDataSource, DataTable, TableColumn, Label, Span
+from bokeh.models import ColumnDataSource, DataTable, TableColumn, Label, Span, HoverTool, HTMLTemplateFormatter
 from bokeh.plotting import figure
-
 
 def get_semester_dates(year, semester):
     """
     Returns the start and end date of the semester as strings in YYYY-MM-DD format.
     """
     if semester == 'Spring':
-        return f'{year}-01-01', f'{year}-06-30'
+        return f'{year}-01-03', f'{year}-06-01'
     elif semester == 'Summer':
-        return f'{year}-06-01', f'{year}-07-31'
+        return f'{year}-06-02', f'{year}-08-05'
     elif semester == 'Winter':
-        return f'{year}-08-01', f'{year}-12-31'
+        return f'{year}-08-15', f'{year}-12-25'
     else:
         raise ValueError("Invalid semester. Choose between 'Spring', 'Summer', or 'Winter'.")
 
 
 def get_semester_months(year, semester):
     if semester == "Spring":
-        start_date = datetime(year, 1, 1)
-        end_date = datetime(year, 6, 30)
+        start_date = datetime(year, 1, 3)  # january 3rd 
+        end_date = datetime(year, 6, 1)
     elif semester == "Summer":
-        start_date = datetime(year, 6, 1)
-        end_date = datetime(year, 8, 31)
+        start_date = datetime(year, 6, 2)  # august 2nd
+        end_date = datetime(year, 8, 5)
     elif semester == "Fall":
-        start_date = datetime(year, 9, 1)
-        end_date = datetime(year, 12, 31)
+        start_date = datetime(year, 8, 15) # august 15th 
+        end_date = datetime(year, 12, 25)
     else:
         raise ValueError("Invalid semester")
 
     months = pd.date_range(start_date, end_date, freq='MS').strftime('%b').tolist()
     return months
+
+def get_semester_term(semester_start_date: str) -> str: 
+    start = datetime.strptime(semester_start_date, '%Y-%m-%d').date()
+    year = start.year
+
+    spring_start = date(year, 1, 3)   # january 1st
+    spring_end = date(year, 6, 1)     # june 1st 
+
+    summer_start = date(year, 6, 15)  # june 15th
+    summer_end = date(year, 8, 10)    # august 10th 
+
+    fall_start = date(year, 8, 15)    # august 15th 
+    fall_end = date(year, 12, 25)     # december 25th
+
+    if spring_start <= start <= spring_end:
+        return f"PRIMAVERA {year} LICENCIATURA"
+    elif summer_start <= start <= summer_end:
+        return f"VERANO {year}"
+    elif fall_start <= start <= fall_end:
+        return f"OTOÑO {year} LICENCIATURA"
+    else:
+        return f"Default term"
 
 
 def create_summary_table(
@@ -153,7 +174,8 @@ def create_histogram(
         width=width,
         height=height,
         title=title,
-        toolbar_location='above',
+        toolbar_location='right',
+        toolbar_sticky=True,
         tools='pan,box_zoom,reset,save'
     )
     
@@ -167,6 +189,15 @@ def create_histogram(
         alpha=alpha
     )
 
+    # Add hover functionality for the bars
+    hover = HoverTool(
+        tooltips=[
+            ('Count', '@top'),
+        ],
+        mode='vline'  # Show hover when moving vertically in the same bin
+    )
+    p.add_tools(hover)
+
     # Add average line
     avg_value = df[col_name].mean()
     avg_line = Span(
@@ -174,7 +205,7 @@ def create_histogram(
         dimension='height',
         line_color='gray',
         line_dash='dotted',
-        line_width=2,
+        line_width=1.5,
     )
     p.add_layout(avg_line)
 
@@ -207,8 +238,6 @@ def create_histogram(
     return p
 
 
-
-
 def create_completion_distribution(source):
     return create_histogram(
         source=source,
@@ -218,7 +247,7 @@ def create_completion_distribution(source):
         bin_range=(0, 100),           # completion % typically 0–100
         fill_color='navy',
         alpha=0.5,
-        width=700,
+        width=400,
         height=400,
         x_axis_label='Completion Percentage (%)',
         y_axis_label='Number of Courses',
@@ -261,3 +290,55 @@ def create_feedback_summary(source):
         empty_message='No Feedback Data'
     )
 
+
+def create_completion_table(source):
+    """
+    Creates a Bokeh DataTable showing course completion percentages with color indicators
+    """
+    df = source.to_df()
+
+    # Standardize and clean the 'course_name' column
+    df['course_name'] = df['course_name'].str.strip()  # Remove leading/trailing spaces
+    df['course_name'] = df['course_name'].str.normalize('NFKD').str.encode('ascii', errors='ignore').str.decode('utf-8')  # Remove accents
+    df['course_name'] = df['course_name'].str.title()  # Convert to title case
+    df = df[~df['course_name'].str.contains('Leccion', case=False, na=False)]
+
+    df = df.sort_values('completion_percentage', ascending=True)
+
+    source = ColumnDataSource(df)
+
+    # Create HTML template for color-coded completion percentage
+    template = """
+    <div style="background:<%= 
+        value < 40 ? '#ffcccc' :  /* Light red for low completion */
+        value < 70 ? '#dceeff' :  /* Light blue for medium completion */
+        '#d4f4cc'                /* Soft green for high completion */
+    %>; padding: 2px 5px; border-radius: 3px;">
+        <%= value.toFixed(2) %>%
+    </div>
+    """
+
+    # Define the columns for the table
+    columns = [
+        TableColumn(field="course_name", title="Course Name", width=250),
+        TableColumn(field="course_id", title="Course ID", width=100),
+        TableColumn(
+            field="completion_percentage",
+            title="Completion %",
+            formatter=HTMLTemplateFormatter(template=template),
+            width=150
+        )
+    ]
+
+    # Create the DataTable
+    data_table = DataTable(
+        source=source,
+        columns=columns,
+        width=600,
+        height=350,
+        index_position=None,
+        sortable=True,
+        reorderable=False,
+    )
+
+    return data_table

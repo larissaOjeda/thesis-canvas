@@ -7,9 +7,11 @@ from bokeh.models import (
     Label,
 )
 from bokeh.transform import factor_cmap, dodge
-from bokeh.palettes import Spectral6
+from bokeh.palettes import Blues8
 
+import math
 import pandas as pd
+import numpy as np 
 
 
 def create_progress_in_course_requirements(source, N=10, avg_count=10):
@@ -51,7 +53,7 @@ def create_progress_in_course_requirements(source, N=10, avg_count=10):
     # Create figure
     p = figure(
         x_range=selected_df["course_id_str"],
-        width=800,
+        width=600,
         height=400,
         title=f"Course Requirements Progress Analysis",
         toolbar_location="above",
@@ -60,9 +62,9 @@ def create_progress_in_course_requirements(source, N=10, avg_count=10):
     )
 
     # Add background shading for different ranges
-    low_box = BoxAnnotation(top=60, fill_color='red', fill_alpha=0.1)
-    mid_box = BoxAnnotation(bottom=60, top=80, fill_color='yellow', fill_alpha=0.1)
-    high_box = BoxAnnotation(bottom=80, fill_color='green', fill_alpha=0.1)
+    low_box = BoxAnnotation(top=60, fill_color='red', fill_alpha=0.5)
+    mid_box = BoxAnnotation(bottom=60, top=80, fill_color='yellow', fill_alpha=0.5)
+    high_box = BoxAnnotation(bottom=80, fill_color='green', fill_alpha=0.5)
     p.add_layout(low_box)
     p.add_layout(mid_box)
     p.add_layout(high_box)
@@ -78,7 +80,7 @@ def create_progress_in_course_requirements(source, N=10, avg_count=10):
     p.add_layout(avg_line)
 
     # Plot lines and points for each category
-    colors = {"Top": "#2ecc71", "Bottom": "#e74c3c", "Average": "#3498db"}
+    colors = {"Top": "#00A878", "Bottom": "#D62246", "Average": "#4B8BBE"}
     line_styles = {
         "Top": {"line_dash": "solid", "line_width": 2},
         "Bottom": {"line_dash": "dashed", "line_width": 2},
@@ -190,11 +192,11 @@ def create_feedback_scatter(source, N=25, avg_count=25):
     source = ColumnDataSource(selected_df)
 
     # Custom color palette: Red (Top), Blue (Bottom), Green (Average)
-    colors = ["red", "blue", "green"]
+    colors = ["#d36e70", "#51d1f6", "#369280"]
 
     # Create scatter plot
     p = figure(
-        width=800,
+        width=700,
         height=400,
         title=f"Top {N}, Bottom {N}, and Avg {avg_count} Courses by Feedback Time",
         x_axis_label="Course ID",
@@ -218,6 +220,7 @@ def create_feedback_scatter(source, N=25, avg_count=25):
         renderers=[scatter],
         tooltips=[
             ("Course ID", "@course_id"),
+            ("Course name", "@course_name"),
             ("Feedback Time (days)", "@avg_feedback_days{0.0} days"),
             ("Category", "@category"),
         ],
@@ -245,58 +248,8 @@ def create_feedback_scatter(source, N=25, avg_count=25):
     return p
 
 
-def create_course_completion_rate(source):
-    """
-    Creates a green bar chart showing course completion rates.
-    Filters the DataFrame so that only certain course IDs
-    (e.g., multiples of 1000) are displayed.
-    """
-    df = source.to_df()
 
-    # 2) Convert course_id to string for factor-based x-axis
-    df['course_id_str'] = df['course_id'].astype(str)
-
-    # 3) Create a ColumnDataSource
-    source = ColumnDataSource(df)
-
-    # 4) Create figure
-    p = figure(
-        x_range=df['course_id_str'],
-        width=800,
-        height=400,
-        title='Course Completion Rate (Filtered by ID)',
-        toolbar_location='above',
-        tools='pan,box_zoom,reset,save'
-    )
-
-    # 5) Add green bars
-    p.vbar(
-        x='course_id_str',
-        top='completion_rate',
-        width=0.7,
-        color='green',
-        source=source
-    )
-
-    # 6) Add a hover tooltip (the “label cursor”)
-    hover = HoverTool(
-        tooltips=[
-            ('Course ID', '@course_id'),
-            ('Completion Rate', '@completion_rate%')
-        ]
-    )
-    p.add_tools(hover)
-
-    # 7) Customize axes
-    p.xaxis.major_label_orientation = 0.8  # tilt labels if needed
-    p.xaxis.axis_label = 'Course ID'
-    p.yaxis.axis_label = 'Completion Rate (%)'
-    p.y_range.start = 0
-    p.y_range.end = 100  # if you know rates can’t exceed 100
-
-    return p
-
-def create_course_completion_rate(source, N=10, avg_count=10):
+def create_course_completion_rate(source, N=10, avg_count=15):
     """
     Creates a line plot showing completion rates with zone annotations and labels.
     """
@@ -329,9 +282,9 @@ def create_course_completion_rate(source, N=10, avg_count=10):
     selected_df["course_id_str"] = selected_df["course_id"].astype(str)
 
     p = figure(
-        width=700,
+        width=600,
         height=400,
-        title="Course Completion Rates Analysis",
+        title=f"Course Completion Rates Analysis (Top {N}, Bottom{N} and Average {N})",
         x_axis_label="Course ID",
         y_axis_label="Completion Rate (%)",
         toolbar_location="above",
@@ -353,9 +306,9 @@ def create_course_completion_rate(source, N=10, avg_count=10):
     p.grid.grid_line_alpha = 0.1
     p.xgrid.grid_line_color = None
 
-    low_box = BoxAnnotation(top=low_range, fill_color='red', fill_alpha=0.1)
-    mid_box = BoxAnnotation(bottom=low_range, top=mid_range_upper, fill_color='yellow', fill_alpha=0.1)
-    high_box = BoxAnnotation(bottom=mid_range_upper, top=100, fill_color='green', fill_alpha=0.1)
+    low_box = BoxAnnotation(top=low_range, fill_color='#FFB2B2', fill_alpha=0.3)  # Light red
+    mid_box = BoxAnnotation(bottom=low_range, top=mid_range_upper, fill_color='#51d1f6', fill_alpha=0.15)  # Light blue
+    high_box = BoxAnnotation(bottom=mid_range_upper, top=100, fill_color='#09a416', fill_alpha=0.15)  # Light green
     p.add_layout(low_box)
     p.add_layout(mid_box)
     p.add_layout(high_box)
@@ -411,7 +364,7 @@ def create_course_completion_rate(source, N=10, avg_count=10):
     p.add_layout(avg_label)
 
 
-    colors = {"Top": "green", "Bottom": "red", "Average": "blue"}
+    colors = {"Top": "#00A878", "Bottom": "#D62246", "Average": "#4B8BBE"}
     for category, color in colors.items():
         category_source = ColumnDataSource(selected_df[selected_df["category"] == category])
         p.line(x="course_id_str", y="completion_rate", color=color, legend_label=category, source=category_source, line_width=2)
@@ -420,55 +373,81 @@ def create_course_completion_rate(source, N=10, avg_count=10):
     p.legend.title = "Category"
     p.legend.location = "top_left"
     p.legend.click_policy = "hide"
-    p.legend.background_fill_alpha = 0.7
+    p.legend.background_fill_alpha = 0.6
 
     p.xaxis.major_label_orientation = 0.8
 
     return p
 
-from bokeh.plotting import figure
-from bokeh.models import ColumnDataSource, HoverTool
-from bokeh.palettes import Spectral6
-from bokeh.transform import dodge
 
 def plot_learning_objective_completion(source):
     # Convert ColumnDataSource to DataFrame
     df = source.to_df()
     df['course_id'] = df['course_id'].astype(str)
 
+    # Calculate averages
+    avg_achievement_avg = df['avg_achievement_percentage'].mean()
+    mastery_percentage_avg = df['mastery_percentage'].mean()
+
     # Recreate ColumnDataSource with updated DataFrame
     source = ColumnDataSource(df)
     course_ids = df['course_id'].tolist()
 
-    # Create figure with updated size
+    # Define hover tool
+    hover = HoverTool(
+        tooltips=[
+            ('Course ID', '@course_id'),
+            ('Course name', '@course_name'),
+            ('Achievement', '@avg_achievement_percentage{0.0}%'),
+            ('Mastery', '@mastery_percentage{0.0}%'),
+        ]
+    )
+
+    # Create figure with tools
     p = figure(
         x_range=course_ids,
-        width=600,  # Increased width
-        height=400,  # Reduced height
+        width=600,
+        height=400,
         title="Learning Objective Completion by Course",
-        toolbar_location=None,
-        tools=""
+        toolbar_location='above',
+        tools=[hover, 'pan', 'box_zoom', 'wheel_zoom', 'save', 'reset']
     )
 
     # Plot avg_achievement_percentage
-    p.vbar(
-        x=dodge('course_id', -0.17, range=p.x_range), 
+    bar1 = p.vbar(
+        x=dodge('course_id', -0.2, range=p.x_range), 
         top='avg_achievement_percentage', 
-        width=0.30, 
+        width=0.25, 
         source=source,
-        legend_label="Average Achievement Percentage", 
-        color=Spectral6[0]
+        color="#497e76",
+        legend_label=f"Achievement Percentage (Avg: {avg_achievement_avg:.1f}%)"
     )
 
     # Plot mastery_percentage
-    p.vbar(
-        x=dodge('course_id', 0.17, range=p.x_range), 
+    bar2 = p.vbar(
+        x=dodge('course_id', 0.2, range=p.x_range), 
         top='mastery_percentage', 
-        width=0.30, 
+        width=0.25, 
         source=source,
-        legend_label="Mastery Percentage", 
-        color=Spectral6[1],
-        alpha=0.8
+        color="#ecb653",
+        legend_label=f"Mastery Percentage (Avg: {mastery_percentage_avg:.1f}%)"
+    )
+
+    # Add average dotted lines
+    p.line(
+        x=p.x_range.factors, 
+        y=[avg_achievement_avg] * len(p.x_range.factors),
+        line_width=2, 
+        line_dash="dotted", 
+        color="blue"
+    )
+
+    p.line(
+        x=p.x_range.factors, 
+        y=[mastery_percentage_avg] * len(p.x_range.factors),
+        line_width=2, 
+        line_dash="dotted", 
+        color="green"
     )
 
     # Customize appearance
@@ -478,18 +457,139 @@ def plot_learning_objective_completion(source):
     p.yaxis.axis_label = 'Percentage'
     p.xaxis.axis_label = 'Course ID'
     p.xaxis.major_label_orientation = 1.2
-    p.legend.location = "top_left"
-    p.legend.orientation = "horizontal"
 
-    # Add hover tool
-    hover = HoverTool()
-    hover.tooltips = [
-        ("Course ID", "@course_id"),
-        ("Average Achievement Percentage", "@avg_achievement_percentage%"),
-        ("Mastery Percentage", "@mastery_percentage%")
-    ]
-    p.add_tools(hover)
+    # Configure legend
+    p.legend.location = "center_right"
+    p.legend.click_policy = "hide"
 
     return p
 
 
+def create_students_retention_rate_plot(source, percentile=75):
+    """
+    Creates a retention rate plot filtered by specified percentile
+    Args:
+        source: ColumnDataSource with the data
+        percentile: The percentile threshold for filtering (e.g., 75 for top 25%)
+    """
+    # Convert source to DataFrame for filtering
+    df = pd.DataFrame(source.data)
+    
+    # Apply filters
+    df = df[~((df['total_enrollments'] > 8) & (df['active_enrollments'] == 1))]
+    df = df[df['total_enrollments'] >= 5]
+    
+    # Filter by specified percentile
+    threshold = np.percentile(df['retention_rate_percentage'], percentile)
+    df = df[df['retention_rate_percentage'] >= threshold]
+    
+    # Convert course_id to string for x-axis
+    df['course_id_str'] = df['course_id'].astype(str)
+    
+    # Create new source with filtered data
+    filtered_source = ColumnDataSource(df)
+    
+    # Create figure
+    p = figure(
+        x_range=df['course_id_str'].tolist(),
+        width=750,
+        height=400,
+        title=f"Course Retention Rates (Top {100-percentile}%)",
+        toolbar_location="right",
+        x_axis_label="Course ID",
+        y_axis_label="Retention Rate (%)"
+    )
+    
+    # Create bars
+    bars = p.vbar(
+        x='course_id_str',
+        top='retention_rate_percentage',
+        width=0.7,
+        source=filtered_source,
+        fill_color=Blues8[3],
+        line_color=None
+    )
+    
+    # Add hover tool for bars
+    hover = HoverTool(
+        tooltips=[
+            ('Course', '@course_name'),
+            ('Course ID', '@course_id_str'),
+            ('Retention Rate', '@retention_rate_percentage{0.0}%'),
+            ('Total Enrollments', '@total_enrollments'),
+            ('Active Enrollments', '@active_enrollments'),
+            ('Term', '@term_name')
+        ],
+        renderers=[bars]
+    )
+    p.add_tools(hover)
+    
+    # Style the plot
+    p.y_range.start = 0
+    p.y_range.end = max(df['retention_rate_percentage']) * 1.1
+    p.xgrid.grid_line_color = None
+    p.xaxis.major_label_orientation = math.pi/4
+    p.xaxis.axis_label_text_font_size = '10pt'
+    p.xaxis.major_label_text_font_size='8pt'
+    
+    # Compute statistics
+    avg_retention = df['retention_rate_percentage'].mean()
+    median_retention = df['retention_rate_percentage'].median()
+    
+    # Add statistics to the title
+    p.title.text = (
+        f"Course Retention Rates (Top {100-percentile}%)\n"
+    )
+
+    # Create data sources for avg and median lines
+    line_source = ColumnDataSource(data={
+        'x': p.x_range.factors, 
+        'avg_y': [avg_retention] * len(p.x_range.factors),
+        'median_y': [median_retention] * len(p.x_range.factors),
+        'avg_value': [avg_retention] * len(p.x_range.factors),
+        'median_value': [median_retention] * len(p.x_range.factors)
+    })
+    
+    # Add lines
+    avg_line = p.line(
+        x='x', y='avg_y', source=line_source,
+        line_color='gray', line_dash='dashed', line_width=2
+    )
+    median_line = p.line(
+        x='x', y='median_y', source=line_source,
+        line_color='black', line_dash='dotted', line_width=2
+    )
+    
+    # Add hover tool for both lines
+    line_hover = HoverTool(
+        renderers=[avg_line, median_line],
+        tooltips=[
+            ("Avg Retention Rate", "@avg_value{0.1f}%"),
+            ("Median Retention Rate", "@median_value{0.1f}%")
+        ]
+    )
+    p.add_tools(line_hover)
+
+    # Add labels for average and median lines
+    label_avg = Label(
+        x=730,                # Positioned near the right side (pixels from the left)
+        y=avg_retention,      
+        x_units='screen',
+        y_units='data',
+        text=f"Avg: {avg_retention:.1f}%", 
+        text_font_size='8pt', 
+        text_color='gray'
+    )
+    label_median = Label(
+        x=730,                # Positioned near the right side
+        y=median_retention,
+        x_units='screen',
+        y_units='data',
+        text=f"Median: {median_retention:.1f}%", 
+        text_font_size='8pt', 
+        text_color='black'
+    )
+    p.add_layout(label_avg)
+    p.add_layout(label_median)
+    
+    return p

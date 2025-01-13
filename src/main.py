@@ -25,11 +25,9 @@ def update_data(year, semester, engine):
     """
     semester_start_date, semester_end_date = helpers.get_semester_dates(year, semester)
     
-    # Get completion data
     course_reqs_progress = queries.get_progress_in_course_requirements_query(semester_start_date, semester_end_date)
     course_reqs_progress_df = pd.read_sql(course_reqs_progress, engine)
     
-    # Get feedback data
     feedback_query = queries.get_feedback_time_by_course_query(semester_start_date, semester_end_date)
     feedback_df = pd.read_sql(feedback_query, engine)
     feedback_df['circle_size'] = feedback_df['avg_feedback_days'] * 2  # Add circle size column for scatter plot

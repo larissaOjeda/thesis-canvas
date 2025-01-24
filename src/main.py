@@ -79,22 +79,33 @@ def save_dashboard(year, semester, filename='course_completion_dashboard.html'):
     save(layout)
     print(f"Dashboard saved as {filename}")
 
+import argparse
 
 def main():
-    """
-    Main function to generate dashboards for specified periods.
-    """
-    semesters = ['Spring'] # ,'Summer', 'Winter']
-    years = [2023,] # 2024]
+    parser = argparse.ArgumentParser(description="Process semester and year input.")
+    parser.add_argument(
+        "-s", "--semester", type=str, required=True,
+        help="Specify the semester (e.g., PRIMAVERA, OTOÑO)"
+    )
+    parser.add_argument(
+        "-y", "--year", type=int, required=True,
+        help="Specify the year (e.g., 2024)"
+    )
+
+    args = parser.parse_args()
+
+    semester = args.semester
+    year = args.year
+
+    if year < 2000 or year > 2100:
+        print("Year must be between 2000 and 2100. Exiting...")
+        return
+
+    print(f"Processing data for semester: {semester} {year}")
+
+    filename = f'course_completion_dashboard_{semester.lower()}_{year}.html'
+    save_dashboard(year, semester, filename)
     
-    for year in years:
-        for semester in semesters:
-            filename = f'course_completion_dashboard_{semester.lower()}_{year}.html'
-            # try:
-            save_dashboard(year, semester, filename)
-            # print(f"Successfully generated dashboard for {semester} {year}")
-            # except Exception as e:
-            #     print(f"Error generating dashboard for {semester} {year}: {str(e)}")
 
 
 if __name__ == "__main__":

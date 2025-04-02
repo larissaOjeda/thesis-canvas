@@ -1,17 +1,21 @@
 from sqlalchemy import text
 from db_config import SessionManager
-from queries import (
-    get_progress_in_course_requirements_query, 
-    get_feedback_time_by_course_query, 
-    get_course_completion_rate_query, 
-    get_learning_objective_completion_query, 
-    get_course_retention_query,
-)
+import queries 
+from utils import helpers
+import pandas as pd
+from datetime import datetime
+
+# Helper function to save results to CSV
+def save_to_csv(data, file_name):
+    df = pd.DataFrame(data)
+    df.to_csv(file_name, index=False)
+    print(f"Saved {file_name}")
+
 
 # KPI 1
 def execute_module_completion_query(start_date: str, end_date: str):
     results = []
-    MODULE_COMPLETION_BY_COURSE = get_progress_in_course_requirements_query(start_date, end_date)
+    MODULE_COMPLETION_BY_COURSE = queries.get_progress_in_course_requirements_query(start_date, end_date)
 
     with SessionManager() as session:
         query = session.execute(text(MODULE_COMPLETION_BY_COURSE))
@@ -19,12 +23,10 @@ def execute_module_completion_query(start_date: str, end_date: str):
 
     return results
 
-# TODO: ADD KPI 2 (kpi and query are designed) but I have not been able to download the web_logs table
-
 # KPI 3
 def execute_avg_feedback_time_by_course_query(start_date: str, end_date: str):
     results = []
-    FEEDBACK_TIME_BY_COURSE = get_feedback_time_by_course_query(start_date, end_date)
+    FEEDBACK_TIME_BY_COURSE =queries.get_feedback_time_by_course_query(start_date, end_date)
 
     with SessionManager() as session:
         query = session.execute(text(FEEDBACK_TIME_BY_COURSE))
@@ -35,7 +37,7 @@ def execute_avg_feedback_time_by_course_query(start_date: str, end_date: str):
 # KPI 4
 def execute_course_completion_rate_query(start_date: str, end_date: str):
     results = []
-    COURSE_COMPLETION_RATE = get_course_completion_rate_query(start_date, end_date)
+    COURSE_COMPLETION_RATE = queries.get_course_completion_rate_query(start_date, end_date)
 
     with SessionManager() as session:
         query = session.execute(text(COURSE_COMPLETION_RATE))
@@ -46,7 +48,7 @@ def execute_course_completion_rate_query(start_date: str, end_date: str):
 # KPI 5
 def execute_learning_objective_completion_query(start_date: str, end_date: str):
     results = []
-    LEARNING_OBJECTIVES_COMPLETION = get_learning_objective_completion_query(start_date, end_date)
+    LEARNING_OBJECTIVES_COMPLETION = queries.get_learning_objective_completion_query(start_date, end_date)
 
     with SessionManager() as session:
         query = session.execute(text(LEARNING_OBJECTIVES_COMPLETION))
@@ -54,11 +56,10 @@ def execute_learning_objective_completion_query(start_date: str, end_date: str):
 
     return results
 
-
 # KPI 6
 def execute_student_retention_rate_query(start_date: str, end_date: str, term_name: str):
     results = []
-    STUDENT_RETENTION_RATE = get_course_retention_query(start_date, end_date, term_name)
+    STUDENT_RETENTION_RATE = queries.get_course_retention_query(start_date, end_date, term_name)
 
     with SessionManager() as session:
         query = session.execute(text(STUDENT_RETENTION_RATE))
@@ -66,33 +67,36 @@ def execute_student_retention_rate_query(start_date: str, end_date: str, term_na
 
     return results
 
-
 if __name__ == "__main__":
-    start_date = '2024-01-01'
-    end_date = '2024-06-01'
+    now = datetime.now()
+    year = now.year 
+    semester = helpers.get_current_semester() 
+    start_date, end_date = helpers.get_semester_dates(year, semester)
+
+    # Option B) Manually change the dates of semesters 
+    # start_date = "2024-01-01"
+    # end_date = "2024-06-01"
+    # semester = helpers.get_semester_term(start_date)
     
-    # results = execute_module_completion_query(start_date, end_date)
-    # for course_id, progress in results:
-    #         print(f"Course {course_id} had an overall module completion of {progress}%")
-    
-    # results_3 = execute_avg_feedback_time_by_course_query(start_date, end_date)
-    # for course_id, progress in results_3:
-    #     print(f"Course {course_id}: {progress} avg feedback time")
+    # KPI 1
+    module_completion_results = execute_module_completion_query(start_date, end_date)
+    save_to_csv(module_completion_results, f"module_completion_{semester}_{year}.csv")
 
-    # TODO: Add results_2 (kpi and query are designed) but I have not been able to download the web_logs table
+    # KPI 3
+    feedback_time_results = execute_avg_feedback_time_by_course_query(start_date, end_date)
+    save_to_csv(feedback_time_results, f"feedback_time_{semester}_{year}.csv")
 
-    # results_4 = execute_course_completion_rate_query(start_date, end_date)
-    # for course_id, total_enrolled, completed_count, completion_rate in results_4: 
-    #     print(f"Course {course_id}, total enrolled {total_enrolled}, completed count = {completed_count}, rate is {completion_rate}")
+    # KPI 4
+    feedback_time_results = execute_course_completion_rate_query(start_date, end_date)
+    save_to_csv(feedback_time_results, f"course_completion_rate_{semester}_{year}.csv")
 
-    # TODO: THE QUERY IS DOING SO CAUSE THE DATA IS NOT WELL STRUCTURED FROM THE PROFESSORS SIDE  
-    #  the query cause its prompting only a few little results  
-    # results_5 = execute_learning_objective_completion_query(start_date, end_date)
-    # print(results_5)
+    # KPI 5
+    feedback_time_results = execute_learning_objective_completion_query(start_date, end_date)
+    save_to_csv(feedback_time_results, f"learning_objective_completion_{semester}_{year}.csv")
 
-    # results_6 = execute_student_retention_rate_query(start_date, end_date, "PRIMAVERA 2024")
-    # for course_id, course_name, intial_en, final_en, _, rate in results_6:
-    #     print(course_id, rate)
-    
+    # KPI 6
+    feedback_time_results = execute_student_retention_rate_query(start_date, end_date)
+    save_to_csv(feedback_time_results, f"student_retention_rate_{semester}_{year}.csv")
+
 
    

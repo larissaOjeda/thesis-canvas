@@ -13,6 +13,8 @@ import math
 import pandas as pd
 import numpy as np 
 
+ITAM_COLOR = "#019B7A"
+LIGHTER_ITAM_COLOR = "#66C7A9"
 
 def create_progress_in_course_requirements(source, N=10, avg_count=10):
     """
@@ -403,14 +405,15 @@ def plot_learning_objective_completion(source):
         ]
     )
 
-    # Create figure with tools
+    # Create figure with a wider width for better bar spacing
     p = figure(
         x_range=course_ids,
-        width=600,
+        width=800,   # Increased width for better spacing
         height=400,
         title="Learning Objective Completion by Course",
         toolbar_location='above',
-        tools=[hover, 'pan', 'box_zoom', 'wheel_zoom', 'save', 'reset']
+        tools=[hover, 'pan', 'box_zoom', 'wheel_zoom', 'save', 'reset'],
+        margin=(50, 150, 50, 50)  # Add margin to accommodate the legend on the right
     )
 
     # Plot avg_achievement_percentage
@@ -419,7 +422,7 @@ def plot_learning_objective_completion(source):
         top='avg_achievement_percentage', 
         width=0.25, 
         source=source,
-        color="#497e76",
+        color=ITAM_COLOR,
         legend_label=f"Achievement Percentage (Avg: {avg_achievement_avg:.1f}%)"
     )
 
@@ -429,7 +432,7 @@ def plot_learning_objective_completion(source):
         top='mastery_percentage', 
         width=0.25, 
         source=source,
-        color="#ecb653",
+        color=LIGHTER_ITAM_COLOR,
         legend_label=f"Mastery Percentage (Avg: {mastery_percentage_avg:.1f}%)"
     )
 
@@ -439,7 +442,8 @@ def plot_learning_objective_completion(source):
         y=[avg_achievement_avg] * len(p.x_range.factors),
         line_width=2, 
         line_dash="dotted", 
-        color="blue"
+        color="blue",
+        legend_label=f"Avg Achievement ({avg_achievement_avg:.1f}%)"
     )
 
     p.line(
@@ -447,7 +451,8 @@ def plot_learning_objective_completion(source):
         y=[mastery_percentage_avg] * len(p.x_range.factors),
         line_width=2, 
         line_dash="dotted", 
-        color="green"
+        color="green",
+        legend_label=f"Avg Mastery ({mastery_percentage_avg:.1f}%)"
     )
 
     # Customize appearance
@@ -458,14 +463,25 @@ def plot_learning_objective_completion(source):
     p.xaxis.axis_label = 'Course ID'
     p.xaxis.major_label_orientation = 1.2
 
-    # Configure legend
-    p.legend.location = "center_right"
+    # Configure legend to the right of the plot
+    p.legend.location = "top_right"
+    p.legend.orientation = "vertical"
+    p.legend.label_text_font_size = "10pt"
+    p.legend.border_line_color = "gray"
+    p.legend.border_line_width = 1
+    p.legend.padding = 5
+    p.legend.spacing = 5
+    p.legend.background_fill_alpha = 0.1
+    p.add_layout(p.legend[0], 'right')
+
+    # Make legend interactive
     p.legend.click_policy = "hide"
 
     return p
 
 
-def create_students_retention_rate_plot(source, percentile=75):
+
+def create_students_retention_rate_plot(source, percentile=25):
     """
     Creates a retention rate plot filtered by specified percentile
     Args:
@@ -494,19 +510,19 @@ def create_students_retention_rate_plot(source, percentile=75):
         x_range=df['course_id_str'].tolist(),
         width=750,
         height=400,
-        title=f"Course Retention Rates (Top {100-percentile}%)",
+        title=f"Course Retention Rates ({100-percentile}%)",
         toolbar_location="right",
         x_axis_label="Course ID",
         y_axis_label="Retention Rate (%)"
     )
     
-    # Create bars
+    # Create bars with the specified green color
     bars = p.vbar(
         x='course_id_str',
         top='retention_rate_percentage',
         width=0.7,
         source=filtered_source,
-        fill_color=Blues8[3],
+        fill_color=ITAM_COLOR,
         line_color=None
     )
     
@@ -538,7 +554,7 @@ def create_students_retention_rate_plot(source, percentile=75):
     
     # Add statistics to the title
     p.title.text = (
-        f"Course Retention Rates (Top {100-percentile}%)\n"
+        f"Course Retention Rates ({100-percentile}%)\n"
     )
 
     # Create data sources for avg and median lines

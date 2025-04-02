@@ -1,28 +1,24 @@
 import pandas as pd 
 import os
 from dotenv import load_dotenv
-
 from sqlalchemy import create_engine
-
 from bokeh.io import save, output_file
 from bokeh.layouts import column, row
-from bokeh.models import (
-    ColumnDataSource, 
-    Spacer,
-)
+from bokeh.models import ColumnDataSource, Spacer, Div
+from datetime import datetime
+from pathlib import Path
 
 import queries 
 import plots
 from utils import helpers
 
-
 load_dotenv() 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
-def update_data(year, semester, engine):
-    """
-    Updates the data based on selected year and semester.
-    """
+
+
+def update_data(year, semester):
+    engine = create_engine(DATABASE_URL)
     semester_start_date, semester_end_date = helpers.get_semester_dates(year, semester)
     
     course_reqs_progress = queries.get_progress_in_course_requirements_query(semester_start_date, semester_end_date)
@@ -30,7 +26,7 @@ def update_data(year, semester, engine):
     
     feedback_query = queries.get_feedback_time_by_course_query(semester_start_date, semester_end_date)
     feedback_df = pd.read_sql(feedback_query, engine)
-    feedback_df['circle_size'] = feedback_df['avg_feedback_days'] * 2  # Add circle size column for scatter plot
+    feedback_df['circle_size'] = feedback_df['avg_feedback_days'] * 2
 
     completion_rate_query = queries.get_course_completion_rate_query(semester_start_date, semester_end_date)
     completion_rate_df = pd.read_sql(completion_rate_query, engine)
@@ -50,63 +46,46 @@ def update_data(year, semester, engine):
         ColumnDataSource(student_retention_df)
     )
 
-
-def save_dashboard(year, semester, filename='course_completion_dashboard.html'):
+def save_dashboard(year, semester):
     """
     Saves a static version of the dashboard for a specific year and semester.
     """
-    engine = create_engine(DATABASE_URL)
+    completion_source, feedback_source, completion_rate_source, learning_objective_source, student_retention_source = update_data(year, semester)
     
-    completion_source, feedback_source, completion_rate_source, learning_objective_source, student_retention_source = update_data(year, semester, engine)
-    
-    title = f"Course Completion and Feedback Dashboard - {semester} {year}"
+    semester_in_spanish = helpers.get_semester_in_spanish(semester)
+    title = f"Métricas para el CDA - {semester_in_spanish} {year}"
+
+    # Create a title as a Bokeh Div element
+    dashboard_title = Div(text=f"<h1 style='text-align:center;'>{title}</h1>", width=1200)
+
+    filename = f"course_completion_dashboard_{semester}_{year}.html"
     
     layout = column(
-    row(
-        plots.create_students_retention_rate_plot(student_retention_source),
-        helpers.create_completion_distribution(completion_source),
-        Spacer(width=50),
-        helpers.create_completion_table(completion_source),
-    ),
-    row(
-        plots.plot_learning_objective_completion(learning_objective_source),
-        plots.create_course_completion_rate(completion_rate_source), 
-        plots.create_feedback_scatter(feedback_source),
-    ), 
+        dashboard_title,  # Add the title at the top
+        row(
+            plots.create_students_retention_rate_plot(student_retention_source),
+            helpers.create_completion_distribution(completion_source),
+            Spacer(width=50),
+            helpers.create_completion_table(completion_source),
+        ),
+        row(
+            plots.plot_learning_objective_completion(learning_objective_source),
+            plots.create_course_completion_rate(completion_rate_source), 
+            plots.create_feedback_scatter(feedback_source),
+        ), 
     )
     
     output_file(filename, title=title)
     save(layout)
     print(f"Dashboard saved as {filename}")
 
-import argparse
 
 def main():
-    parser = argparse.ArgumentParser(description="Process semester and year input.")
-    parser.add_argument(
-        "-s", "--semester", type=str, required=True,
-        help="Specify the semester (e.g., PRIMAVERA, OTOÑO)"
-    )
-    parser.add_argument(
-        "-y", "--year", type=int, required=True,
-        help="Specify the year (e.g., 2024)"
-    )
+    now = datetime.now()
+    year = now.year 
+    semester = helpers.get_current_semester() 
 
-    args = parser.parse_args()
-
-    semester = args.semester
-    year = args.year
-
-    if year < 2000 or year > 2100:
-        print("Year must be between 2000 and 2100. Exiting...")
-        return
-
-    print(f"Processing data for semester: {semester} {year}")
-
-    filename = f'course_completion_dashboard_{semester.lower()}_{year}.html'
-    save_dashboard(year, semester, filename)
-    
-
+    save_dashboard(2023, "Spring")
 
 if __name__ == "__main__":
     main()

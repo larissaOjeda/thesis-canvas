@@ -5,6 +5,19 @@ import pandas as pd
 from bokeh.models import ColumnDataSource, DataTable, TableColumn, Label, Span, HoverTool, HTMLTemplateFormatter
 from bokeh.plotting import figure
 
+
+translation_map = {
+    "Spring": "Primavera", 
+    "Summer": "Verano", 
+    "Winter": "Invierno"
+}
+
+def get_semester_in_spanish(semester): 
+    if semester in translation_map.keys():
+        return translation_map[semester]
+    else:
+        return f"Invalid period, the available periods are: Summer, Spring and Winter"
+
 def get_semester_dates(year, semester):
     """
     Returns the start and end date of the semester as strings in YYYY-MM-DD format.
@@ -39,7 +52,7 @@ def get_semester_term(semester_start_date: str) -> str:
     start = datetime.strptime(semester_start_date, '%Y-%m-%d').date()
     year = start.year
 
-    spring_start = date(year, 1, 3)   # january 1st
+    spring_start = date(year, 1, 1)   # january 1st
     spring_end = date(year, 6, 1)     # june 1st 
 
     summer_start = date(year, 6, 15)  # june 15th
@@ -56,6 +69,15 @@ def get_semester_term(semester_start_date: str) -> str:
         return f"OTOÑO {year} LICENCIATURA"
     else:
         return f"Default term"
+
+def get_current_semester():
+    month = datetime.now().month
+    if 1 <= month <= 6:
+        return "Spring"
+    elif 7 <= month <= 12:
+        return "Fall"
+    else:
+        raise ValueError("Invalid month for semester calculation.")
 
 
 def create_summary_table(
@@ -186,6 +208,7 @@ def create_histogram(
         right='right',
         source=hist_source,
         fill_color=fill_color,
+        line_color='#019b7a',
         alpha=alpha
     )
 
@@ -245,8 +268,8 @@ def create_completion_distribution(source):
         title='Distribution of Completion Percentages',
         bins=20,
         bin_range=(0, 100),           # completion % typically 0–100
-        fill_color='navy',
-        alpha=0.5,
+        fill_color='#019b7a',
+        alpha=0.85,
         width=400,
         height=400,
         x_axis_label='Completion Percentage (%)',

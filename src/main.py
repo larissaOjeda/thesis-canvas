@@ -64,6 +64,7 @@ def save_dashboard(year, semester):
         dashboard_title,  # Add the title at the top
         row(
             plots.create_students_retention_rate_plot(student_retention_source),
+            Spacer(width=50),
             helpers.create_completion_distribution(completion_source),
             Spacer(width=50),
             helpers.create_completion_table(completion_source),
@@ -71,7 +72,7 @@ def save_dashboard(year, semester):
         row(
             plots.plot_learning_objective_completion(learning_objective_source),
             plots.create_course_completion_rate(completion_rate_source), 
-            plots.create_feedback_scatter(feedback_source),
+            plots.create_feedback_bar_chart(feedback_source),
         ), 
     )
     

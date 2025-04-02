@@ -14,7 +14,15 @@ import pandas as pd
 import numpy as np 
 
 ITAM_COLOR = "#019B7A"
-LIGHTER_ITAM_COLOR = "#66C7A9"
+LIGHTER_ITAM_COLOR = "#9FE1CC"
+DARKER_ITAM_COLOR = "#014D3E"
+
+COLOR_FOR_WORST = "#FF6F61"
+COLOR_FOR_AVERAGE = "#8FAADC"
+COLOR_FOR_BEST = "#4CAF50"
+
+TEXT_FONT_SIZE = "12pt"
+HEIGHT = 500 
 
 def create_progress_in_course_requirements(source, N=10, avg_count=10):
     """
@@ -56,7 +64,7 @@ def create_progress_in_course_requirements(source, N=10, avg_count=10):
     p = figure(
         x_range=selected_df["course_id_str"],
         width=600,
-        height=400,
+        height=HEIGHT,
         title=f"Course Requirements Progress Analysis",
         toolbar_location="above",
         tools="pan,box_zoom,reset,save",
@@ -134,7 +142,8 @@ def create_progress_in_course_requirements(source, N=10, avg_count=10):
     p.grid.grid_line_color = "gray"
     p.grid.grid_line_alpha = 0.1
     p.xaxis.major_label_orientation = 0.8
-    
+    p.title.text_font_size = TEXT_FONT_SIZE
+
     # Legend styling
     p.legend.title = "Category"
     p.legend.location = "top_left"
@@ -148,107 +157,224 @@ def create_progress_in_course_requirements(source, N=10, avg_count=10):
 
     return p
 
+## TO DELETE
+# def create_feedback_bar_chart(source, N=10, avg_count=10):
+#     """
+#     Creates a sorted horizontal bar chart for average feedback time.
+#     N: Number of top and bottom courses to display
+#     avg_count: Number of average courses closest to the overall average feedback time
+#     """
+#     df = source.to_df()
 
-def create_feedback_scatter(source, N=25, avg_count=25):
+#     # Sort by feedback time (descending)
+#     sorted_df = df.sort_values(by="avg_feedback_days", ascending=False)
+
+#     # Calculate the average feedback time
+#     avg_feedback = df["avg_feedback_days"].mean()
+
+#     # Select top N, bottom N, and average N courses
+#     top_n = sorted_df.head(N)
+#     bottom_n = sorted_df.tail(N)
+
+#     # Find the avg_count courses closest to the overall average feedback time
+#     sorted_df['avg_diff'] = abs(sorted_df['avg_feedback_days'] - avg_feedback)
+#     avg_courses = sorted_df.nsmallest(avg_count, 'avg_diff')
+
+#     # Combine top, bottom, and average courses
+#     selected_df = pd.concat([top_n, bottom_n, avg_courses])
+
+#     # Assign categories for color distinction
+#     selected_df['category'] = (
+#         ['Peores'] * len(top_n) +
+#         ['Mejores'] * len(bottom_n) +
+#         ['Promedio'] * len(avg_courses)
+#     )
+
+#     # Convert course_id to string for x-axis
+#     selected_df['course_id_str'] = selected_df['course_id'].astype(str)
+
+#     # Prepare the data source
+#     source = ColumnDataSource(selected_df)
+
+#     # Color map for categories
+#     color_map = factor_cmap('category', palette=['#D62246', '#4B8BBE', '#00A878'], factors=['Peores', 'Mejores', 'Mejores'])
+
+#     # Create the figure
+#     p = figure(
+#         y_range=selected_df['course_id_str'][::-1],  # Reverse for descending order
+#         width=800,
+#         height=HEIGHT,
+#         title="Tiempo promedio de retroalimentación (Mejores, promedios y peores 10)",
+#         toolbar_location='above',
+#         x_axis_label="Average Feedback Time (days)",
+#         tools="pan,box_zoom,reset,save",
+#         margin=(20, 20, 20, 20),
+#     )
+
+#     # Add horizontal bars
+#     p.hbar(
+#         y='course_id_str', 
+#         right='avg_feedback_days', 
+#         height=0.4,
+#         color=color_map,
+#         source=source,
+#         legend_field='category'
+#     )
+
+#     # Add hover tool
+#     hover = HoverTool(
+#         tooltips=[
+#             ("Course ID", "@course_id"),
+#             ("Course name", "@course_name"),
+#             ("Avg Feedback Time (days)", "@avg_feedback_days{0.00}"),
+#             ("Category", "@category"),
+#         ]
+#     )
+#     p.add_tools(hover)
+
+#     # Add a vertical reference line for the average feedback time
+#     avg_line = Span(
+#         location=avg_feedback,
+#         dimension='height',
+#         line_color='black',
+#         line_dash='dotted',
+#         line_width=2
+#     )
+#     p.add_layout(avg_line)
+
+#     # Add a label for the average line
+#     avg_label = Label(
+#         x=avg_feedback + 1,
+#         y=len(selected_df['course_name']) - 1,
+#         text=f"Avg: {avg_feedback:.2f} days",
+#         text_font_size="10pt",
+#         text_color="black"
+#     )
+#     p.add_layout(avg_label)
+
+#     # Customize the legend
+#     p.legend.title = "Tiempo de retroalimentación"
+#     p.legend.location = "top_right"
+#     p.legend.orientation = "vertical"
+#     p.legend.click_policy = "hide"
+
+#     # Style the plot
+#     p.background_fill_color = "#f9f9f9"
+#     p.border_fill_color = "#ffffff"
+#     p.outline_line_color = None
+#     p.title.text_font_size = TEXT_FONT_SIZE
+
+#     return p
+
+def create_feedback_bar_chart(source, N=10, avg_count=10):
     """
-    Creates a scatter plot for average feedback time with:
-    - Top N courses
-    - Bottom N courses
-    - Avg N courses closest to the overall average feedback time.
+    Creates a sorted horizontal bar chart for average feedback time.
+    N: Number of top and bottom courses to display
+    avg_count: Number of average courses closest to the overall average feedback time
     """
     df = source.to_df()
 
-    # Sort by feedback time
+    # Sort by feedback time (descending)
     sorted_df = df.sort_values(by="avg_feedback_days", ascending=False)
-
-    # Select top N and bottom N courses
-    top_n = sorted_df.head(N)
-    bottom_n = sorted_df.tail(N)
 
     # Calculate the average feedback time
     avg_feedback = df["avg_feedback_days"].mean()
 
-    # Find the avg_count courses closest to the average feedback time
-    df["avg_diff"] = abs(df["avg_feedback_days"] - avg_feedback)
-    avg_courses = df.nsmallest(avg_count, "avg_diff")
+    # Select top N, bottom N, and average N courses
+    top_n = sorted_df.head(N)
+    bottom_n = sorted_df.tail(N)
+
+    # Find the avg_count courses closest to the overall average feedback time
+    sorted_df['avg_diff'] = abs(sorted_df['avg_feedback_days'] - avg_feedback)
+    avg_courses = sorted_df.nsmallest(avg_count, 'avg_diff')
 
     # Combine top, bottom, and average courses
     selected_df = pd.concat([top_n, bottom_n, avg_courses])
 
     # Assign categories for color distinction
-    selected_df["category"] = (
-        ["Top"] * len(top_n) +
-        ["Bottom"] * len(bottom_n) +
-        ["Average"] * len(avg_courses)
-    )
+    selected_df['category'] = (
+    ['Peores'] * len(top_n) +
+    ['Mejores'] * len(bottom_n) +
+    ['Promedio'] * len(avg_courses)
+)
 
-    # Normalize feedback time for bubble size
-    min_size, max_size = 5, 20  # Bubble size range
-    selected_df["bubble_size"] = (
-        ((selected_df["avg_feedback_days"] - selected_df["avg_feedback_days"].min()) /
-         (selected_df["avg_feedback_days"].max() - selected_df["avg_feedback_days"].min())) *
-        (max_size - min_size) + min_size
-    )
+    # Convert course_id to string for x-axis
+    selected_df['course_id_str'] = selected_df['course_id'].astype(str)
+    selected_df['course_label'] = selected_df['course_name'] + " (" + selected_df['course_id'].astype(str) + ")"
 
     # Prepare the data source
     source = ColumnDataSource(selected_df)
 
-    # Custom color palette: Red (Top), Blue (Bottom), Green (Average)
-    colors = ["#d36e70", "#51d1f6", "#369280"]
+    # Color map for categories
+    color_map = factor_cmap('category', palette=[DARKER_ITAM_COLOR, ITAM_COLOR, LIGHTER_ITAM_COLOR], factors=['Peores', 'Promedio', 'Mejores'])
 
-    # Create scatter plot
+    # Create the figure
     p = figure(
-        width=700,
-        height=400,
-        title=f"Top {N}, Bottom {N}, and Avg {avg_count} Courses by Feedback Time",
-        x_axis_label="Course ID",
-        y_axis_label="Feedback Time (hours)",
-        toolbar_location="above",
+        y_range=selected_df['course_id_str'][::-1],  # Reverse for descending order
+        width=800,
+        height=HEIGHT,
+        title=f"Tiempo promedio de retroalimentación (mejores, promedio y peores {N})",
+        toolbar_location='above',
+        x_axis_label="Tiempo promedio de retroalimentación (días)",
+        y_axis_label = "ID del curso",
         tools="pan,box_zoom,reset,save",
+        margin=(20, 20, 20, 20),
     )
 
-    # Add scatter points with dynamic size
-    scatter = p.scatter(
-        x="course_id",
-        y="avg_feedback_days",
-        size="bubble_size",  # Bubble size based on feedback time
-        color=factor_cmap("category", palette=colors, factors=["Top", "Bottom", "Average"]),
-        legend_field="category",
+    # Add horizontal bars
+    p.hbar(
+        y='course_id_str', 
+        right='avg_feedback_days', 
+        height=0.4,
+        color=color_map,
         source=source,
+        legend_field='category'
     )
 
     # Add hover tool
     hover = HoverTool(
-        renderers=[scatter],
         tooltips=[
             ("Course ID", "@course_id"),
             ("Course name", "@course_name"),
-            ("Feedback Time (days)", "@avg_feedback_days{0.0} days"),
+            ("Avg Feedback Time (days)", "@avg_feedback_days{0.00}"),
             ("Category", "@category"),
-        ],
+        ]
     )
     p.add_tools(hover)
 
-    # Add horizontal line for the average feedback time
-    p.line(
-        x=[selected_df["course_id"].min(), selected_df["course_id"].max()],
-        y=[avg_feedback, avg_feedback],
-        line_dash="dotted",
-        line_width=2,
-        color="black",
-        legend_label=f"Average: {avg_feedback:.2f} hours",
+    # Add a vertical reference line for the average feedback time
+    avg_line = Span(
+        location=avg_feedback,
+        dimension='height',
+        line_color='black',
+        line_dash='dotted',
+        line_width=2
     )
+    p.add_layout(avg_line)
+
+    # Add a label for the average line
+    avg_label = Label(
+        x=avg_feedback + 1,
+        y=len(selected_df['course_name']) - 1,
+        text=f"Avg: {avg_feedback:.2f} days",
+        text_font_size="10pt",
+        text_color="black"
+    )
+    p.add_layout(avg_label)
+
+    # Customize the legend
+    p.legend.title = "Categoría"
+    p.legend.location = "top_right"
+    p.legend.orientation = "vertical"
+    p.legend.click_policy = "hide"
 
     # Style the plot
-    p.add_layout(p.legend[0], "right")
     p.background_fill_color = "#f9f9f9"
     p.border_fill_color = "#ffffff"
-    p.outline_line_color = None  # Remove plot borders
-    p.legend.location = "top_left"
-    p.legend.label_text_font_size = "10pt"
+    p.outline_line_color = None
+    p.title.text_font_size = TEXT_FONT_SIZE
 
     return p
-
 
 
 def create_course_completion_rate(source, N=10, avg_count=15):
@@ -285,14 +411,16 @@ def create_course_completion_rate(source, N=10, avg_count=15):
 
     p = figure(
         width=600,
-        height=400,
-        title=f"Course Completion Rates Analysis (Top {N}, Bottom{N} and Average {N})",
-        x_axis_label="Course ID",
-        y_axis_label="Completion Rate (%)",
+        height=HEIGHT,
+        title=f"Tasa de finalización por curso (Mejores, promedio y peores {N})",
+        x_axis_label="ID del curso",
+        y_axis_label="Tasa de finalización (%)",
         toolbar_location="above",
         tools="pan,box_zoom,reset,save,hover",
         x_range=selected_df["course_id_str"],
-        y_range=(0, 100)
+        y_range=(0, 100),
+        margin=(20, 0, 20, 0),
+
     )
 
     hover = HoverTool(tooltips=[
@@ -319,7 +447,7 @@ def create_course_completion_rate(source, N=10, avg_count=15):
 
     low_label = Label(
         x=10, y=low_range - label_y_offset,
-        text="Bottom Area",
+        text="Área inferior",
         text_color="gray",
         text_font_size="10pt",
         text_align="left",
@@ -327,7 +455,7 @@ def create_course_completion_rate(source, N=10, avg_count=15):
     )
     mid_label = Label(
         x=10, y=avg_completion + 20,
-        text="Average Area",
+        text="Área promedio",
         text_color="gray",
         text_font_size="10pt",
         text_align="left",
@@ -335,7 +463,7 @@ def create_course_completion_rate(source, N=10, avg_count=15):
     )
     high_label = Label(
         x=10, y=mid_range_upper + label_y_offset,
-        text="Top Area",
+        text="Área superior",
         text_color="gray",
         text_font_size="10pt",
         text_align="left",
@@ -365,17 +493,24 @@ def create_course_completion_rate(source, N=10, avg_count=15):
     )
     p.add_layout(avg_label)
 
+    selected_df["category"] = (
+    ["Mejores"] * len(top_n) +
+    ["Peores"] * len(bottom_n) +
+    ["Promedio"] * len(avg_courses)
+    )
 
-    colors = {"Top": "#00A878", "Bottom": "#D62246", "Average": "#4B8BBE"}
+    # Updated colors for Spanish labels
+    colors = {"Mejores": COLOR_FOR_BEST, "Peores": COLOR_FOR_WORST, "Promedio": COLOR_FOR_AVERAGE}
     for category, color in colors.items():
         category_source = ColumnDataSource(selected_df[selected_df["category"] == category])
         p.line(x="course_id_str", y="completion_rate", color=color, legend_label=category, source=category_source, line_width=2)
         p.scatter(x="course_id_str", y="completion_rate", size=6, color=color, legend_label=category, source=category_source)
 
-    p.legend.title = "Category"
+    p.legend.title = "Categorías"
     p.legend.location = "top_left"
     p.legend.click_policy = "hide"
     p.legend.background_fill_alpha = 0.6
+    p.title.text_font_size = TEXT_FONT_SIZE
 
     p.xaxis.major_label_orientation = 0.8
 
@@ -408,12 +543,12 @@ def plot_learning_objective_completion(source):
     # Create figure with a wider width for better bar spacing
     p = figure(
         x_range=course_ids,
-        width=800,   # Increased width for better spacing
-        height=400,
-        title="Learning Objective Completion by Course",
+        width=900,   # Increased width for better spacing
+        height=HEIGHT,
+        title="Cumplimiento de los objetivos de aprendizaje por curso",
         toolbar_location='above',
         tools=[hover, 'pan', 'box_zoom', 'wheel_zoom', 'save', 'reset'],
-        margin=(50, 150, 50, 50)  # Add margin to accommodate the legend on the right
+        margin=(20, 20, 20, 20)  # Add margin to accommodate the legend on the right
     )
 
     # Plot avg_achievement_percentage
@@ -459,9 +594,10 @@ def plot_learning_objective_completion(source):
     p.x_range.range_padding = 0.1
     p.y_range.start = 0
     p.xgrid.grid_line_color = None
-    p.yaxis.axis_label = 'Percentage'
-    p.xaxis.axis_label = 'Course ID'
+    p.yaxis.axis_label = 'Porcentaje'
+    p.xaxis.axis_label = 'ID del curso'
     p.xaxis.major_label_orientation = 1.2
+    p.title.text_font_size = TEXT_FONT_SIZE
 
     # Configure legend to the right of the plot
     p.legend.location = "top_right"
@@ -508,12 +644,12 @@ def create_students_retention_rate_plot(source, percentile=25):
     # Create figure
     p = figure(
         x_range=df['course_id_str'].tolist(),
-        width=750,
-        height=400,
-        title=f"Course Retention Rates ({100-percentile}%)",
+        width=900,
+        height=HEIGHT,
+        title=f"Tasa de retención de estudiantes por curso ({100-percentile}%)",
         toolbar_location="right",
-        x_axis_label="Course ID",
-        y_axis_label="Retention Rate (%)"
+        x_axis_label="ID del curso",
+        y_axis_label="Tasa de retención (%)"
     )
     
     # Create bars with the specified green color
@@ -547,6 +683,7 @@ def create_students_retention_rate_plot(source, percentile=25):
     p.xaxis.major_label_orientation = math.pi/4
     p.xaxis.axis_label_text_font_size = '10pt'
     p.xaxis.major_label_text_font_size='8pt'
+    p.title.text_font_size = TEXT_FONT_SIZE
     
     # Compute statistics
     avg_retention = df['retention_rate_percentage'].mean()
@@ -554,7 +691,7 @@ def create_students_retention_rate_plot(source, percentile=25):
     
     # Add statistics to the title
     p.title.text = (
-        f"Course Retention Rates ({100-percentile}%)\n"
+        f"Tasa de retención de estudiantes por curso (Percentil {100-percentile}%)\n"
     )
 
     # Create data sources for avg and median lines

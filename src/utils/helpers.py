@@ -5,6 +5,8 @@ import pandas as pd
 from bokeh.models import ColumnDataSource, DataTable, TableColumn, Label, Span, HoverTool, HTMLTemplateFormatter
 from bokeh.plotting import figure
 
+TEXT_FONT_SIZE = "12pt"
+HEIGHT = 500 
 
 translation_map = {
     "Spring": "Primavera", 
@@ -257,6 +259,7 @@ def create_histogram(
     
     p.xaxis.axis_label = x_axis_label
     p.yaxis.axis_label = y_axis_label
+    p.title.text_font_size = TEXT_FONT_SIZE
     
     return p
 
@@ -265,15 +268,15 @@ def create_completion_distribution(source):
     return create_histogram(
         source=source,
         col_name='completion_percentage',
-        title='Distribution of Completion Percentages',
+        title='Distribución del progreso en requisitos del curso',
         bins=20,
         bin_range=(0, 100),           # completion % typically 0–100
         fill_color='#019b7a',
         alpha=0.85,
-        width=400,
-        height=400,
-        x_axis_label='Completion Percentage (%)',
-        y_axis_label='Number of Courses',
+        width=600,
+        height=HEIGHT,
+        x_axis_label='Porcentaje de completitud (%)',
+        y_axis_label='Número de cursos',
         # label_text='Completion Distribution'
     )
 
@@ -343,11 +346,11 @@ def create_completion_table(source):
 
     # Define the columns for the table
     columns = [
-        TableColumn(field="course_name", title="Course Name", width=250),
-        TableColumn(field="course_id", title="Course ID", width=100),
+        TableColumn(field="course_name", title="Nombre del curso", width=250),
+        TableColumn(field="course_id", title="ID del curso", width=100),
         TableColumn(
             field="completion_percentage",
-            title="Completion %",
+            title="Completitud (%)",
             formatter=HTMLTemplateFormatter(template=template),
             width=150
         )
@@ -358,7 +361,7 @@ def create_completion_table(source):
         source=source,
         columns=columns,
         width=600,
-        height=350,
+        height=450,
         index_position=None,
         sortable=True,
         reorderable=False,

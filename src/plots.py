@@ -486,7 +486,7 @@ def create_course_completion_rate(source, N=10, avg_count=15):
     avg_label = Label(
         x=len(selected_df["course_id_str"]) // 1.6,
         y=avg_completion + 2,  # Position slightly above the line
-        text=f"Avg: {avg_completion:.2f}%",
+        text=f"Promedio total: {avg_completion:.2f}%",
         text_color="gray",
         text_font_size="10pt",
         text_align="center"
@@ -558,7 +558,7 @@ def plot_learning_objective_completion(source):
         width=0.25, 
         source=source,
         color=ITAM_COLOR,
-        legend_label=f"Achievement Percentage (Avg: {avg_achievement_avg:.1f}%)"
+        legend_label=f"Porcentaje de logro"
     )
 
     # Plot mastery_percentage
@@ -568,7 +568,7 @@ def plot_learning_objective_completion(source):
         width=0.25, 
         source=source,
         color=LIGHTER_ITAM_COLOR,
-        legend_label=f"Mastery Percentage (Avg: {mastery_percentage_avg:.1f}%)"
+        legend_label=f"Porcentaje de dominio "
     )
 
     # Add average dotted lines
@@ -578,7 +578,7 @@ def plot_learning_objective_completion(source):
         line_width=2, 
         line_dash="dotted", 
         color="blue",
-        legend_label=f"Avg Achievement ({avg_achievement_avg:.1f}%)"
+        legend_label=f"Promedio de logro ({avg_achievement_avg:.1f}%)"
     )
 
     p.line(
@@ -587,7 +587,7 @@ def plot_learning_objective_completion(source):
         line_width=2, 
         line_dash="dotted", 
         color="green",
-        legend_label=f"Avg Mastery ({mastery_percentage_avg:.1f}%)"
+        legend_label=f"Promedio de dominio ({mastery_percentage_avg:.1f}%)"
     )
 
     # Customize appearance
